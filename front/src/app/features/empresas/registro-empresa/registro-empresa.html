@@ -1,0 +1,74 @@
+<div class="pagina-centrada">
+  <section class="tarjeta">
+    <h1>Registrar empresa</h1>
+
+    @if (registrada(); as empresa) {
+      <div class="alerta alerta-ok" role="status">
+        <strong>{{ empresa.nombre }}</strong> quedó registrada. Enviamos a
+        <strong>{{ empresa.correo }}</strong> un enlace para activar el usuario administrador y
+        definir su contraseña.
+      </div>
+      <p class="ayuda">
+        Sin correo configurado en el servidor, el enlace sale en la consola del backend.
+      </p>
+      <div class="acciones">
+        <a class="btn" routerLink="/activar-cuenta">Activar cuenta</a>
+        <a class="btn btn-sec" routerLink="/login">Ir a iniciar sesión</a>
+      </div>
+    } @else {
+      <p class="ayuda">Tu empresa tendra un espacio propio e independiente para sus procesos.</p>
+
+      @if (error(); as msg) {
+        <div class="alerta alerta-error" role="alert">{{ msg }}</div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="registrar()" novalidate>
+        <div class="campo">
+          <label for="nombre">Nombre de la empresa</label>
+          <input id="nombre" formControlName="nombre" autocomplete="organization"
+                 [class.invalido]="mostrarError(form.controls.nombre)" />
+          @if (mostrarError(form.controls.nombre)) {
+            <span class="error-campo">
+              @if (form.controls.nombre.hasError('required')) { El nombre es obligatorio. }
+              @else if (form.controls.nombre.hasError('minlength')) { Mínimo 2 caracteres. }
+              @else if (form.controls.nombre.hasError('maxlength')) { Máximo 255 caracteres. }
+              @else { Solo letras, números y . , & ' - }
+            </span>
+          }
+        </div>
+
+        <div class="campo">
+          <label for="nit">NIT</label>
+          <input id="nit" formControlName="nit" placeholder="900123456-7" inputmode="numeric"
+                 [class.invalido]="mostrarError(form.controls.nit)" />
+          @if (mostrarError(form.controls.nit)) {
+            <span class="error-campo">
+              @if (form.controls.nit.hasError('required')) { El NIT es obligatorio. }
+              @else { De 9 a 12 dígitos, con dígito de verificación opcional (900123456-7). }
+            </span>
+          }
+        </div>
+
+        <div class="campo">
+          <label for="correo">Correo de contacto</label>
+          <input id="correo" type="email" formControlName="correo" autocomplete="email"
+                 [class.invalido]="mostrarError(form.controls.correo)" />
+          <span class="ayuda">Sera el usuario administrador inicial.</span>
+          @if (mostrarError(form.controls.correo)) {
+            <span class="error-campo">
+              @if (form.controls.correo.hasError('required')) { El correo es obligatorio. }
+              @else { El correo no tiene un formato válido. }
+            </span>
+          }
+        </div>
+
+        <div class="acciones">
+          <button class="btn" type="submit" [disabled]="enviando()">
+            {{ enviando() ? 'Registrando...' : 'Registrar empresa' }}
+          </button>
+          <a routerLink="/login">Ya tengo cuenta</a>
+        </div>
+      </form>
+    }
+  </section>
+</div>

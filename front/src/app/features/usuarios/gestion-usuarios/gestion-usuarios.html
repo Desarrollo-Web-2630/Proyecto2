@@ -1,0 +1,87 @@
+<h1>Usuarios de la empresa</h1>
+@if (error(); as msg) {
+  <div class="alerta alerta-error" role="alert">{{ msg }}</div>
+}
+@if (aviso(); as msg) {
+  <div class="alerta alerta-ok" role="status">{{ msg }}</div>
+}
+
+@if (sesion.esAdmin()) {
+  <section class="tarjeta">
+    <h2>Invitar usuario</h2>
+    <form [formGroup]="form" (ngSubmit)="invitar()" novalidate>
+      <div class="campo">
+        <label for="nombre">Nombre</label>
+        <input id="nombre" formControlName="nombre" [class.invalido]="mostrarError(form.controls.nombre)" />
+        @if (mostrarError(form.controls.nombre)) {
+          <span class="error-campo">Mínimo 2 caracteres, solo letras y espacios.</span>
+        }
+      </div>
+      <div class="campo">
+        <label for="correo">Correo</label>
+        <input id="correo" type="email" formControlName="correo" [class.invalido]="mostrarError(form.controls.correo)" />
+        @if (mostrarError(form.controls.correo)) {
+          <span class="error-campo">Ingresa un correo válido.</span>
+        }
+      </div>
+      <div class="campo">
+        <label for="password">Contraseña inicial</label>
+        <input id="password" type="password" formControlName="password" autocomplete="new-password"
+               [class.invalido]="mostrarError(form.controls.password)" />
+        <span class="ayuda">Se la compartes al colaborador; la cuenta queda inactiva hasta que abra el enlace del correo.</span>
+        @if (mostrarError(form.controls.password)) {
+          <span class="error-campo">Mínimo 8 caracteres, con mayúscula, minúscula y número.</span>
+        }
+      </div>
+      <div class="campo">
+        <label for="rol">Rol de acceso</label>
+        <select id="rol" formControlName="rolAcceso">
+          @for (r of roles; track r) {
+            <option [value]="r">{{ etiquetaRol[r] }}</option>
+          }
+        </select>
+      </div>
+      <button class="btn" type="submit" [disabled]="ocupado()">Invitar</button>
+    </form>
+  </section>
+}
+
+<section class="tarjeta">
+  @if (cargando()) {
+    <p>Cargando…</p>
+  } @else {
+    <table>
+      <thead>
+        <tr><th>Nombre</th><th>Correo</th><th>Rol de acceso</th><th>Estado</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (u of usuarios(); track u.id) {
+          <tr>
+            <td>{{ u.nombre }} @if (esYo(u)) { <span class="chip">Tú</span> }</td>
+            <td>{{ u.correo }}</td>
+            <td>
+              @if (sesion.esAdmin() && !esYo(u)) {
+                <select [attr.aria-label]="'Rol de ' + u.nombre" [value]="u.rolAcceso" [disabled]="ocupado()"
+                        (change)="cambiarRol(u, $event)">
+                  @for (r of roles; track r) {
+                    <option [value]="r" [selected]="r === u.rolAcceso">{{ etiquetaRol[r] }}</option>
+                  }
+                </select>
+              } @else {
+                {{ etiquetaRol[u.rolAcceso] }}
+              }
+            </td>
+            <td><span class="chip">{{ u.activo ? 'Activo' : 'Inactivo' }}</span></td>
+            <td>
+              @if (sesion.esAdmin() && !esYo(u) && u.activo) {
+                <button class="btn btn-peligro btn-mini" type="button" [disabled]="ocupado()" (click)="desactivar(u)">
+                  Desactivar
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

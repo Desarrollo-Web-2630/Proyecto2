@@ -1,0 +1,19 @@
+# Levanta front + backend. BACKEND_PATH apunta a la carpeta del repo del backend
+# (la que tiene el pom.xml) y esa carpeta necesita su propio Dockerfile.
+services:
+  backend:
+    build: ${BACKEND_PATH:-../Proyecto1/thymeleaf}
+    environment:
+      SPRING_PROFILES_ACTIVE: h2
+      APP_MAIL_ENABLED: "false"
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: .
+    environment:
+      BACKEND_URL: http://backend:8080
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend

@@ -1,0 +1,96 @@
+:root {
+  /* Paleta del proyecto */
+  --ciruela: #49364e;
+  --malva: #9d80a4;
+  --azul-gris: #7f9ca3;
+  --salvia: #95a37f;
+  --arena: #a3907f;
+
+  --fondo: #f6f4f2;
+  --superficie: #ffffff;
+  --borde: #ddd6d0;
+  --texto: #2e2232;
+  --texto-suave: #6b5f6e;
+  --primario: var(--ciruela);
+  --primario-hover: #382a3c;
+  --peligro: #8a5a45;
+  --peligro-fondo: #f3ebe5;
+  --exito: #5f6c4b;
+  --exito-fondo: #eef1e8;
+  --info-fondo: #edf2f3;
+  --chip-fondo: #f0eaf1;
+  --lane-a: #f3eff4;
+  --lane-b: #ffffff;
+  --radio: 6px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--texto);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fondo); }
+h1 { font-size: 1.5rem; margin: 0 0 1rem; }
+h2 { font-size: 1.15rem; margin: 0 0 0.75rem; }
+
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+.campo { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.9rem; }
+.campo label { font-weight: 600; font-size: 0.9rem; }
+.campo input:focus, .campo select:focus, .campo textarea:focus { outline: 2px solid var(--malva); outline-offset: 0; border-color: var(--malva); }
+.campo input, .campo select, .campo textarea {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  font: inherit;
+}
+.campo input.invalido, .campo select.invalido { border-color: var(--peligro); }
+.error-campo { color: var(--peligro); font-size: 0.82rem; }
+.ayuda { color: var(--texto-suave); font-size: 0.82rem; }
+
+.btn {
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--radio);
+  border: 1px solid var(--primario);
+  background: var(--primario);
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) { background: var(--primario-hover); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-sec { background: transparent; color: var(--primario); }
+.btn-sec:hover:not(:disabled) { background: var(--chip-fondo); }
+.btn-peligro { background: transparent; color: var(--peligro); border-color: var(--peligro); }
+.btn-peligro:hover:not(:disabled) { background: var(--peligro-fondo); }
+.btn-mini { padding: 0.2rem 0.5rem; font-size: 0.82rem; }
+.acciones { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+
+.alerta { padding: 0.7rem 0.9rem; border-radius: var(--radio); margin-bottom: 1rem; }
+.alerta-error { background: var(--peligro-fondo); color: var(--peligro); border-left: 4px solid var(--arena); }
+.alerta-ok { background: var(--exito-fondo); color: var(--exito); border-left: 4px solid var(--salvia); }
+.alerta-info { background: var(--info-fondo); color: var(--texto); border-left: 4px solid var(--azul-gris); }
+
+.chip {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--chip-fondo);
+  color: var(--ciruela);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--borde); }
+th { font-size: 0.85rem; color: var(--texto-suave); }
+
+.pagina-centrada {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+.pagina-centrada .tarjeta { width: 100%; max-width: 440px; }
+a.btn { text-decoration: none; display: inline-block; }

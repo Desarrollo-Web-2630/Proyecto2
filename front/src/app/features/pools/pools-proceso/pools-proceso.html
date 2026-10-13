@@ -1,0 +1,205 @@
+@if (cargando()) {
+  <p>Cargando…</p>
+} @else {
+  <div class="encabezado">
+    <div>
+      <a routerLink="/procesos">← Procesos</a>
+      <h1>{{ proceso()?.nombre ?? 'Proceso' }} · pools y lanes</h1>
+      @if (esAjeno()) {
+        <p class="chip">Proceso compartido · solo lectura</p>
+      } @else if (soloLectura()) {
+        <p class="chip">Tu rol solo permite consultar</p>
+      }
+    </div>
+    @if (!esAjeno() && proceso(); as p) {
+      <a class="btn btn-sec" [routerLink]="['/procesos', p.id, 'compartir']">Compartir proceso</a>
+    }
+  </div>
+
+  @if (error(); as msg) {
+    <div class="alerta alerta-error" role="alert">{{ msg }}</div>
+  }
+  @if (aviso(); as msg) {
+    <div class="alerta alerta-ok" role="status">{{ msg }}</div>
+  }
+
+  <app-diagrama-pool [pools]="pools()" [lanesPorPool]="lanesPorPool()" [actividades]="actividades()" [roles]="roles()" />
+
+  <!-- HU-21 · Nuevo pool -->
+  @if (puedeCrear()) {
+    <section class="tarjeta">
+      <h2>Agregar participante (pool)</h2>
+      <form class="fila-form" [formGroup]="formPool" (ngSubmit)="crearPool()" novalidate>
+        <div class="campo">
+          <label for="poolNombre">Nombre</label>
+          <input id="poolNombre" formControlName="nombre" [class.invalido]="mostrarError(formPool.controls.nombre)" />
+        </div>
+        <div class="campo">
+          <label for="poolTipo">Tipo</label>
+          <select id="poolTipo" formControlName="tipo">
+            @for (t of tipos; track t) {
+              <option [value]="t" [disabled]="tipoDeshabilitado(t)">{{ etiquetaTipo[t] }}</option>
+            }
+          </select>
+        </div>
+        <button class="btn" type="submit" [disabled]="ocupado()">Crear pool</button>
+      </form>
+      <p class="ayuda">
+        Solo hay un pool de la empresa propietaria. Clientes, proveedores y sistemas externos se modelan como caja
+        negra: sin lanes ni actividades.
+      </p>
+    </section>
+  }
+
+  <!-- Pool propietario + lanes (HU-21 / HU-22) -->
+  <section class="tarjeta">
+    @if (poolPropietario(); as pool) {
+      <div class="encabezado">
+        @if (editandoPoolId() === pool.id) {
+          <form class="edicion" [formGroup]="formEditarPool" (ngSubmit)="guardarPool(pool)">
+            <input formControlName="nombre" aria-label="Nombre del pool" />
+            <select formControlName="tipo" aria-label="Tipo de pool">
+              @for (t of tipos; track t) {
+                <option [value]="t" [disabled]="tipoDeshabilitado(t, pool.id)">{{ etiquetaTipo[t] }}</option>
+              }
+            </select>
+            <button class="btn btn-mini" type="submit" [disabled]="ocupado()">Guardar</button>
+            <button class="btn btn-sec btn-mini" type="button" (click)="editandoPoolId.set(null)">Cancelar</button>
+          </form>
+        } @else {
+          <h2>{{ pool.nombre }} <span class="chip">{{ etiquetaTipo[pool.tipo] }}</span></h2>
+          <div class="acciones">
+            @if (puedeEditar()) {
+              <button class="btn btn-sec btn-mini" type="button" (click)="iniciarEdicionPool(pool)">Editar</button>
+            }
+            @if (puedeEliminar()) {
+              <button class="btn btn-peligro btn-mini" type="button" [disabled]="ocupado()" (click)="eliminarPool(pool)">
+                Eliminar
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <h2>Lanes</h2>
+      @if (lanesPropietario().length === 0) {
+        <p class="ayuda">Sin lanes. Cada lane representa un rol de proceso responsable de actividades.</p>
+      } @else {
+        <table>
+          <thead>
+            <tr><th>#</th><th>Lane</th><th>Rol de proceso</th><th>Actividades</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (lane of lanesPropietario(); track lane.id; let i = $index, primero = $first, ultimo = $last) {
+              <tr>
+                <td>{{ i + 1 }}</td>
+                @if (editandoLaneId() === lane.id) {
+                  <td colspan="3">
+                    <form class="edicion" [formGroup]="formEditarLane" (ngSubmit)="guardarLane(lane)">
+                      <input formControlName="nombre" aria-label="Nombre de la lane" />
+                      <select formControlName="rolProcesoId" aria-label="Rol de proceso">
+                        @for (r of roles(); track r.id) {
+                          <option [ngValue]="r.id">{{ r.nombre }}</option>
+                        }
+                      </select>
+                      <button class="btn btn-mini" type="submit" [disabled]="ocupado()">Guardar</button>
+                      <button class="btn btn-sec btn-mini" type="button" (click)="editandoLaneId.set(null)">Cancelar</button>
+                    </form>
+                  </td>
+                } @else {
+                  <td>{{ lane.nombre }}</td>
+                  <td>{{ nombreRol().get(lane.rolProcesoId) ?? '—' }}</td>
+                  <td>{{ actividadesPorLane().get(lane.id) ?? 0 }}</td>
+                }
+                <td class="acciones">
+                  @if (puedeEditar() && editandoLaneId() !== lane.id) {
+                    <button class="btn btn-sec btn-mini" type="button" aria-label="Subir lane"
+                            [disabled]="primero || ocupado()" (click)="mover(lane, -1)">↑</button>
+                    <button class="btn btn-sec btn-mini" type="button" aria-label="Bajar lane"
+                            [disabled]="ultimo || ocupado()" (click)="mover(lane, 1)">↓</button>
+                    <button class="btn btn-sec btn-mini" type="button" (click)="iniciarEdicionLane(lane)">Editar</button>
+                  }
+                  @if (puedeEliminar()) {
+                    <button class="btn btn-peligro btn-mini" type="button"
+                            [disabled]="ocupado() || (actividadesPorLane().get(lane.id) ?? 0) > 0"
+                            [title]="(actividadesPorLane().get(lane.id) ?? 0) > 0 ? 'Reasigna sus actividades antes de eliminarla' : ''"
+                            (click)="eliminarLane(lane)">Eliminar</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
+      @if (puedeCrear()) {
+        <h2 style="margin-top: 1.25rem">Nueva lane</h2>
+        @if (roles().length === 0) {
+          <div class="alerta alerta-info">
+            La empresa no tiene roles de proceso. Crea primero los roles (Analista, Supervisor…): solo esos se pueden
+            asignar a una lane.
+          </div>
+        } @else {
+          <form class="fila-form" [formGroup]="formLane" (ngSubmit)="crearLane()" novalidate>
+            <div class="campo">
+              <label for="laneRol">Rol de proceso</label>
+              <select id="laneRol" formControlName="rolProcesoId" (change)="alElegirRol()"
+                      [class.invalido]="mostrarError(formLane.controls.rolProcesoId)">
+                <option [ngValue]="null" disabled>Selecciona un rol</option>
+                @for (r of roles(); track r.id) {
+                  <option [ngValue]="r.id">{{ r.nombre }}</option>
+                }
+              </select>
+            </div>
+            <div class="campo">
+              <label for="laneNombre">Nombre de la lane</label>
+              <input id="laneNombre" formControlName="nombre" [class.invalido]="mostrarError(formLane.controls.nombre)" />
+            </div>
+            <button class="btn" type="submit" [disabled]="ocupado()">Agregar lane</button>
+          </form>
+        }
+      }
+    } @else {
+      <p class="ayuda">Este proceso aún no tiene el pool de la empresa propietaria.</p>
+    }
+  </section>
+
+  <!-- Pools externos (caja negra) -->
+  <section class="tarjeta">
+    <h2>Participantes externos</h2>
+    @if (poolsExternos().length === 0) {
+      <p class="ayuda">Sin participantes externos.</p>
+    } @else {
+      <ul class="externos">
+        @for (pool of poolsExternos(); track pool.id) {
+          <li>
+            @if (editandoPoolId() === pool.id) {
+              <form class="edicion" [formGroup]="formEditarPool" (ngSubmit)="guardarPool(pool)">
+                <input formControlName="nombre" aria-label="Nombre del pool" />
+                <select formControlName="tipo" aria-label="Tipo de pool">
+                  @for (t of tipos; track t) {
+                    <option [value]="t" [disabled]="tipoDeshabilitado(t, pool.id)">{{ etiquetaTipo[t] }}</option>
+                  }
+                </select>
+                <button class="btn btn-mini" type="submit" [disabled]="ocupado()">Guardar</button>
+                <button class="btn btn-sec btn-mini" type="button" (click)="editandoPoolId.set(null)">Cancelar</button>
+              </form>
+            } @else {
+              <span>{{ pool.nombre }} <span class="chip">{{ etiquetaTipo[pool.tipo] }}</span></span>
+              <span class="acciones">
+                @if (puedeEditar()) {
+                  <button class="btn btn-sec btn-mini" type="button" (click)="iniciarEdicionPool(pool)">Editar</button>
+                }
+                @if (puedeEliminar()) {
+                  <button class="btn btn-peligro btn-mini" type="button" [disabled]="ocupado()" (click)="eliminarPool(pool)">
+                    Eliminar
+                  </button>
+                }
+              </span>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}

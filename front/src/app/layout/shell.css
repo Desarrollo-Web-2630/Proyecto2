@@ -1,0 +1,42 @@
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--ciruela);
+  flex-wrap: wrap;
+}
+.marca {
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+}
+nav {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+}
+nav a {
+  color: #d9cfdc;
+  text-decoration: none;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid transparent;
+}
+nav a.activo {
+  color: #fff;
+  border-bottom-color: var(--salvia);
+}
+.usuario { color: #fff; }
+.usuario .btn-sec { color: #fff; border-color: var(--malva); }
+.usuario .btn-sec:hover { background: rgba(255, 255, 255, 0.1); }
+.usuario .chip { background: var(--malva); color: #fff; }
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.contenido {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
