@@ -20,6 +20,7 @@
             <td><span class="chip">{{ p.estado }}</span></td>
             <td class="acciones">
               <a class="btn btn-sec btn-mini" [routerLink]="['/procesos', p.id, 'pools']">Pools y lanes</a>
+              <a class="btn btn-sec btn-mini" [routerLink]="['/procesos', p.id, 'actividades']">Actividades</a>
               @if (sesion.esAdmin()) {
                 <a class="btn btn-sec btn-mini" [routerLink]="['/procesos', p.id, 'compartir']">Compartir</a>
               }

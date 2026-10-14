@@ -58,6 +58,11 @@ export const routes: Routes = [
           import('./features/pools/pools-proceso/pools-proceso').then((m) => m.PoolsProceso),
       },
       {
+        path: 'procesos/:procesoId/actividades',
+        loadComponent: () =>
+          import('./features/actividades/gestion-actividades/gestion-actividades').then((m) => m.GestionActividades),
+      },
+      {
         path: 'procesos/:procesoId/compartir',
         canActivate: [rolGuard('ADMIN')],
         loadComponent: () =>
