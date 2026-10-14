@@ -11,12 +11,17 @@ const db = {
     { id: 3, nombre: 'Pedro Lector', correo: 'pedro@demo.com', rolAcceso: 'LECTURA', activo: true, empresaId: 1 },
     { id: 4, nombre: 'Admin Proveedor', correo: 'p@p.com', rolAcceso: 'ADMIN', activo: true, empresaId: 2 },
   ],
-  pools: [], lanes: [], actividades: [], comp: { compartido: false, empresasIds: [] },
+  pools: [], lanes: [], actividades: [], arcos: [], comp: { compartido: false, empresasIds: [] },
   permisos: { crear: ['ADMIN', 'EDITOR'], editar: ['ADMIN', 'EDITOR'], eliminar: ['ADMIN'] },
 };
 let seq = 100;
 const send = (res, s, b) => { res.writeHead(s, { 'Content-Type': 'application/json' }); res.end(b === undefined ? '' : JSON.stringify(b)); };
 const err = (res, s, m) => send(res, s, { timestamp: new Date().toISOString(), status: s, mensaje: m });
+const validarActividad = (b) => !b.nombre?.trim() ? 'El nombre de la actividad es obligatorio'
+  : !b.tipoActividad?.trim() ? 'El tipo de actividad es obligatorio'
+  : b.laneId == null ? 'La actividad debe estar asociada a una lane'
+  : (b.posicionX == null || b.posicionY == null) ? 'La posicion de la actividad en el diagrama es obligatoria'
+  : (b.posicionX < 0 || b.posicionY < 0) ? 'La posicion de la actividad no puede ser negativa' : null;
 http.createServer((req, res) => {
   let body = ''; req.on('data', c => body += c); req.on('end', () => {
     const b = body ? JSON.parse(body) : {}; const u = new URL(req.url, 'http://x'); const u2 = u; const p = u.pathname; const m = req.method;
@@ -38,7 +43,45 @@ http.createServer((req, res) => {
     if (p === '/api/v1/roles-proceso') return send(res, 200, db.roles);
     if (p === '/api/v1/permisos-pool') { if (m === 'PUT') db.permisos = b; return send(res, 200, db.permisos); }
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)$/))) return send(res, 200, db.procesos[0]);
-    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/actividades$/))) return send(res, 200, db.actividades);
+    // Actividades (HU-08/09/10): mismas validaciones y mensajes que ActividadService
+    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/actividades$/))) {
+      if (m === 'GET') return send(res, 200, db.actividades);
+      if (m === 'POST') {
+        const faltan = validarActividad(b); if (faltan) return err(res, 400, faltan);
+        const nombre = b.nombre.trim();
+        if (db.actividades.some(a => a.nombre === nombre)) return err(res, 400, `Ya existe una actividad llamada '${nombre}' en el proceso`);
+        const a = { id: ++seq, nombre, tipoActividad: b.tipoActividad.trim(), posicionX: b.posicionX, posicionY: b.posicionY, laneId: b.laneId, procesoId: +r[1] };
+        db.actividades.push(a); return send(res, 201, a);
+      }
+    }
+    if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/actividades\/(\d+)$/))) {
+      const a = db.actividades.find(x => x.id == r[1]);
+      if (!a) return err(res, 400, 'La actividad no existe o no pertenece a su empresa');
+      if (m === 'PUT') {
+        const faltan = validarActividad(b); if (faltan) return err(res, 400, faltan);
+        const nombre = b.nombre.trim();
+        if (db.actividades.some(x => x.nombre === nombre && x.id !== a.id)) return err(res, 400, `Ya existe una actividad llamada '${nombre}' en el proceso`);
+        Object.assign(a, { nombre, tipoActividad: b.tipoActividad.trim(), laneId: b.laneId, posicionX: b.posicionX, posicionY: b.posicionY });
+        return send(res, 200, a);
+      }
+      if (m === 'DELETE') {
+        // Borrado en cascada: los arcos conectados también se van
+        db.arcos = db.arcos.filter(x => x.origenId !== a.id && x.destinoId !== a.id);
+        db.actividades.splice(db.actividades.indexOf(a), 1); return send(res, 204);
+      }
+      return send(res, 200, a);
+    }
+    // Arcos: solo lo necesario para probar la advertencia de HU-10 (el CRUD completo es de HU-11 a HU-13)
+    // Crear uno a mano:  curl -X POST localhost:8080/api/v1/procesos/1/arcos -H 'Content-Type: application/json' -d '{"origenId":900,"destinoId":101}'
+    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/arcos$/))) {
+      if (m === 'POST') {
+        const o = db.actividades.find(x => x.id == b.origenId), d = db.actividades.find(x => x.id == b.destinoId);
+        if (!o || !d) return err(res, 400, 'Origen o destino no existen');
+        const x = { id: ++seq, nombre: b.nombre ?? null, condicion: null, origenId: o.id, origenNombre: o.nombre, destinoId: d.id, destinoNombre: d.nombre, procesoId: +r[1] };
+        db.arcos.push(x); return send(res, 201, x);
+      }
+      return send(res, 200, db.arcos);
+    }
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/comparticion$/))) { if (m === 'PUT') db.comp = b; return send(res, 200, db.comp); }
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/pools$/))) { if (m === 'POST') { const x = { id: ++seq, procesoId: 1, ...b }; db.pools.push(x); return send(res, 201, x); } return send(res, 200, db.pools); }
     if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/pools\/(\d+)$/))) { const i = db.pools.findIndex(x => x.id == r[1]); if (m === 'DELETE') { db.pools.splice(i, 1); return send(res, 204); } Object.assign(db.pools[i], b); return send(res, 200, db.pools[i]); }
