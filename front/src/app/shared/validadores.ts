@@ -13,6 +13,12 @@ export function coincidenValidator(campo: string, confirmacion: string): Validat
   };
 }
 
+// Rechaza textos que solo tienen espacios (Validators.required los deja pasar)
+export function sinSoloEspacios(control: AbstractControl): ValidationErrors | null {
+  const valor: unknown = control.value;
+  return typeof valor === 'string' && valor.length > 0 && valor.trim().length === 0 ? { soloEspacios: true } : null;
+}
+
 export function mostrarError(control: AbstractControl | null): boolean {
   return !!control && control.invalid && (control.touched || control.dirty);
 }

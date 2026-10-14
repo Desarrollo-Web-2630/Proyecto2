@@ -22,6 +22,13 @@ const validarActividad = (b) => !b.nombre?.trim() ? 'El nombre de la actividad e
   : b.laneId == null ? 'La actividad debe estar asociada a una lane'
   : (b.posicionX == null || b.posicionY == null) ? 'La posicion de la actividad en el diagrama es obligatoria'
   : (b.posicionX < 0 || b.posicionY < 0) ? 'La posicion de la actividad no puede ser negativa' : null;
+// Roles: "en uso" si alguna lane referencia el rol. Todos los procesos del mock son el 1.
+const procesosDondeSeUsa = (rolId) => db.lanes.some(l => l.rolProcesoId == rolId) ? [{ id: db.procesos[0].id, nombre: db.procesos[0].nombre }] : [];
+const rolDetalle = (r) => { const usos = procesosDondeSeUsa(r.id); return { ...r, procesosEnUso: usos, eliminable: usos.length === 0 }; };
+const validarRol = (b) => !b.nombre?.trim() ? 'El nombre del rol es obligatorio'
+  : !b.descripcion?.trim() ? 'La descripcion del rol es obligatoria'
+  : b.nombre.trim().length > 100 ? 'El nombre del rol no puede superar 100 caracteres'
+  : b.descripcion.trim().length > 500 ? 'La descripcion del rol no puede superar 500 caracteres' : null;
 http.createServer((req, res) => {
   let body = ''; req.on('data', c => body += c); req.on('end', () => {
     const b = body ? JSON.parse(body) : {}; const u = new URL(req.url, 'http://x'); const u2 = u; const p = u.pathname; const m = req.method;
@@ -40,7 +47,39 @@ http.createServer((req, res) => {
     if (p === '/api/auth/activar-cuenta') return send(res, 200, { verificado: true, mensaje: 'Cuenta activada', correo: 'a@a.com' });
     if (p === '/api/v1/procesos/compartidos') return send(res, 200, []);
     if (p === '/api/v1/procesos') return send(res, 200, db.procesos);
-    if (p === '/api/v1/roles-proceso') return send(res, 200, db.roles);
+    // Roles de proceso (HU-17 a HU-20): mismas validaciones y mensajes que RolProcesoService.
+    // "En uso" = alguna lane del proceso usa el rol (en el backend real lo calculará HU-22 con Lane).
+    if (p === '/api/v1/roles-proceso/buscar' && m === 'GET') {
+      const q = (u.searchParams.get('nombre') ?? '').trim().toLowerCase();
+      const page = Math.max(+(u.searchParams.get('page') ?? 0), 0), size = Math.min(Math.max(+(u.searchParams.get('size') ?? 10), 1), 100);
+      const todos = db.roles.filter(r => !q || r.nombre.toLowerCase().includes(q)).sort((a, b) => a.nombre.localeCompare(b.nombre)).map(rolDetalle);
+      return send(res, 200, { content: todos.slice(page * size, page * size + size), totalElements: todos.length, totalPages: Math.ceil(todos.length / size), number: page, size });
+    }
+    if (p === '/api/v1/roles-proceso') {
+      if (m === 'POST') {
+        const faltan = validarRol(b); if (faltan) return err(res, 400, faltan);
+        const nombre = b.nombre.trim();
+        if (db.roles.some(r => r.nombre.toLowerCase() === nombre.toLowerCase())) return err(res, 400, `Ya existe un rol llamado '${nombre}' en la empresa`);
+        const r = { id: ++seq, nombre, descripcion: b.descripcion.trim() }; db.roles.push(r); return send(res, 201, rolDetalle(r));
+      }
+      return send(res, 200, db.roles.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).map(rolDetalle));
+    }
+    if ((r = p.match(/^\/api\/v1\/roles-proceso\/(\d+)$/))) {
+      const rol = db.roles.find(x => x.id == r[1]);
+      if (!rol) return err(res, 400, 'El rol no existe o no pertenece a su empresa');
+      if (m === 'PUT') {
+        const faltan = validarRol(b); if (faltan) return err(res, 400, faltan);
+        const nombre = b.nombre.trim();
+        if (db.roles.some(x => x.id !== rol.id && x.nombre.toLowerCase() === nombre.toLowerCase())) return err(res, 400, `Ya existe un rol llamado '${nombre}' en la empresa`);
+        Object.assign(rol, { nombre, descripcion: b.descripcion.trim() }); return send(res, 200, rolDetalle(rol));
+      }
+      if (m === 'DELETE') {
+        const usos = procesosDondeSeUsa(rol.id);
+        if (usos.length) return err(res, 400, `No se puede eliminar el rol '${rol.nombre}' porque esta en uso en los procesos: ${usos.map(x => x.nombre).join(', ')}`);
+        db.roles.splice(db.roles.indexOf(rol), 1); return send(res, 204);
+      }
+      return send(res, 200, rolDetalle(rol));
+    }
     if (p === '/api/v1/permisos-pool') { if (m === 'PUT') db.permisos = b; return send(res, 200, db.permisos); }
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)$/))) return send(res, 200, db.procesos[0]);
     // Actividades (HU-08/09/10): mismas validaciones y mensajes que ActividadService

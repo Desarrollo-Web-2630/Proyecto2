@@ -41,6 +41,11 @@ export const routes: Routes = [
           import('./features/procesos/lista-procesos/lista-procesos').then((m) => m.ListaProcesos),
       },
       {
+        path: 'roles',
+        loadComponent: () =>
+          import('./features/roles/gestion-roles/gestion-roles').then((m) => m.GestionRoles),
+      },
+      {
         path: 'usuarios',
         loadComponent: () =>
           import('./features/usuarios/gestion-usuarios/gestion-usuarios').then((m) => m.GestionUsuarios),
