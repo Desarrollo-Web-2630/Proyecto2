@@ -4,6 +4,7 @@
     <a routerLink="/procesos" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">Mis procesos</a>
     <a routerLink="/procesos/compartidos" routerLinkActive="activo">Compartidos conmigo</a>
     <a routerLink="/usuarios" routerLinkActive="activo">Usuarios</a>
+    <a routerLink="/roles" routerLinkActive="activo">Roles de proceso</a>
     @if (sesion.esAdmin()) {
       <a routerLink="/configuracion/permisos-pool" routerLinkActive="activo">Permisos de pools</a>
     }
