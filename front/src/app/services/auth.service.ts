@@ -33,7 +33,7 @@ export class AuthService {
     return api.post<VerificacionResponse>('/auth/reenviar-verificacion', { correo }).then(r => r.data);
   }
 
-  // El login no devuelve la empresa, así que se busca al usuario en cada una
+  // El login no devuelve la empresa, se busca aquí
   private async buscarEmpresa(usuario: Usuario): Promise<number> {
     const empresas = await this.empresaService.list();
     for (const empresa of empresas) {

@@ -4,13 +4,12 @@ import { RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
 import { Empresa, EmpresaRequest } from '../../models/empresa.model';
 import { EmpresaService } from '../../services/empresa.service';
-import { FieldErrorComponent } from '../../shared/field-error/field-error.component';
 
-// HU-01: registra la empresa y su administrador inicial
+// HU-01
 @Component({
   selector: 'app-empresa-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, FieldErrorComponent],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './empresa-form.component.html'
 })
 export class EmpresaFormComponent {

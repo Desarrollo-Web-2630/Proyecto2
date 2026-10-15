@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios';
 import { ErrorResponse } from '../models/error-response.model';
 
-// Traduce un error de la API a un mensaje para el usuario, sin detalles técnicos
+// Convierte un error de la API en un mensaje para el usuario
 export function mensajeDeError(err: unknown, porDefecto: string): string {
   if (!isAxiosError(err)) {
     return porDefecto;

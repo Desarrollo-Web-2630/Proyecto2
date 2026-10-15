@@ -23,7 +23,7 @@ export const routes: Routes = [
     title: 'Registrar empresa',
     loadComponent: () => import('./empresas/empresa-form/empresa-form.component').then(m => m.EmpresaFormComponent)
   },
-  // Pantallas que requieren sesión: el layout redirige al login si no hay usuario
+  // Pantallas que requieren sesión
   {
     path: '',
     component: LayoutComponent,

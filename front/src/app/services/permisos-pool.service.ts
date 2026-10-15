@@ -8,7 +8,7 @@ export class PermisosPoolService {
   private readonly sesion = inject(SesionService);
   private readonly url = '/v1/permisos-pool';
 
-  // Mientras no se configure nada, admin y editor pueden modificar
+  // Valores por defecto
   readonly permisos = signal<PermisosPool>({
     crear: ['ADMIN', 'EDITOR'],
     editar: ['ADMIN', 'EDITOR'],

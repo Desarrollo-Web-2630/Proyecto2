@@ -6,17 +6,17 @@
       Correo
       <input type="email" formControlName="correo" autocomplete="username">
     </label>
-    <app-field-error
-      [control]="form.controls.correo"
-      [messages]="{ required: 'El correo es obligatorio', email: 'El correo no tiene un formato válido' }" />
+    @if (form.controls.correo.touched && form.controls.correo.invalid) {
+      <small class="error">@if (form.controls.correo.hasError('required')) { El correo es obligatorio } @else if (form.controls.correo.hasError('email')) { El correo no tiene un formato válido }</small>
+    }
 
     <label>
       Contraseña
       <input type="password" formControlName="password" autocomplete="current-password">
     </label>
-    <app-field-error
-      [control]="form.controls.password"
-      [messages]="{ required: 'La contraseña es obligatoria' }" />
+    @if (form.controls.password.touched && form.controls.password.invalid) {
+      <small class="error">La contraseña es obligatoria</small>
+    }
 
     @if (message()) {
       <p class="error" role="alert">{{ message() }}</p>

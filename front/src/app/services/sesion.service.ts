@@ -36,7 +36,7 @@ export class SesionService {
     return sesion;
   }
 
-  // El backend identifica la empresa con este encabezado (entrega 2, sin token)
+  // El backend identifica la empresa con este encabezado
   private ponerEncabezado(sesion: Sesion | null): void {
     if (sesion) {
       api.defaults.headers.common['X-Empresa-Id'] = String(sesion.empresaId);

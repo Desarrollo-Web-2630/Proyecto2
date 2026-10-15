@@ -65,9 +65,9 @@
           Nombre
           <input formControlName="nombre">
         </label>
-        <app-field-error
-          [control]="poolForm.controls.nombre"
-          [messages]="{ required: 'El nombre es obligatorio', maxlength: 'Máximo 120 caracteres' }" />
+        @if (poolForm.controls.nombre.touched && poolForm.controls.nombre.invalid) {
+          <small class="error">@if (poolForm.controls.nombre.hasError('required')) { El nombre es obligatorio } @else if (poolForm.controls.nombre.hasError('maxlength')) { Máximo 120 caracteres }</small>
+        }
         <label>
           Tipo
           <select formControlName="tipo">
@@ -142,16 +142,16 @@
                 }
               </select>
             </label>
-            <app-field-error
-              [control]="laneForm.controls.rolProcesoId"
-              [messages]="{ required: 'Selecciona un rol' }" />
+            @if (laneForm.controls.rolProcesoId.touched && laneForm.controls.rolProcesoId.invalid) {
+              <small class="error">Selecciona un rol</small>
+            }
             <label>
               Nombre de la lane
               <input formControlName="nombre">
             </label>
-            <app-field-error
-              [control]="laneForm.controls.nombre"
-              [messages]="{ required: 'El nombre es obligatorio', maxlength: 'Máximo 120 caracteres' }" />
+            @if (laneForm.controls.nombre.touched && laneForm.controls.nombre.invalid) {
+              <small class="error">@if (laneForm.controls.nombre.hasError('required')) { El nombre es obligatorio } @else if (laneForm.controls.nombre.hasError('maxlength')) { Máximo 120 caracteres }</small>
+            }
             <div class="acciones">
               <button type="submit">{{ editandoLane() ? 'Guardar' : 'Agregar lane' }}</button>
               @if (editandoLane()) {

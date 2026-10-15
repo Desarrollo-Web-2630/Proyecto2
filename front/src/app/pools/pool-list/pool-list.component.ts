@@ -14,14 +14,13 @@ import { PoolService } from '../../services/pool.service';
 import { ProcesoService } from '../../services/proceso.service';
 import { RolProcesoService } from '../../services/rol-proceso.service';
 import { SesionService } from '../../services/sesion.service';
-import { FieldErrorComponent } from '../../shared/field-error/field-error.component';
 import { PoolDiagramaComponent } from '../pool-diagrama/pool-diagrama.component';
 
-// HU-21 (pools) y HU-22 (lanes), con los permisos de HU-24
+// HU-21 y HU-22
 @Component({
   selector: 'app-pool-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, FieldErrorComponent, PoolDiagramaComponent],
+  imports: [ReactiveFormsModule, RouterLink, PoolDiagramaComponent],
   templateUrl: './pool-list.component.html'
 })
 export class PoolListComponent implements OnInit {
@@ -57,7 +56,7 @@ export class PoolListComponent implements OnInit {
   protected readonly propietario = computed(() => this.pools().find(p => p.tipo === 'PROPIETARIO') ?? null);
   protected readonly externos = computed(() => this.pools().filter(p => p.tipo !== 'PROPIETARIO'));
 
-  // Un proceso de otra empresa (compartido) solo se consulta
+  // Un proceso compartido por otra empresa solo se consulta
   protected readonly soloLectura = computed(() => this.proceso()?.empresaId !== this.sesion.usuario()?.empresaId);
 
   protected readonly poolForm = this.fb.nonNullable.group({
@@ -76,7 +75,7 @@ export class PoolListComponent implements OnInit {
 
   ngOnInit(): void {
     this.permisos.get().catch(() => {
-      // Si el backend no responde se usan los permisos por defecto
+      // Si falla se usan los permisos por defecto
     });
     Promise.all([this.procesoService.get(this.id), this.rolService.list()])
       .then(([proceso, roles]) => {
@@ -130,7 +129,7 @@ export class PoolListComponent implements OnInit {
     return tipo === 'PROPIETARIO' && propietario !== null && propietario.id !== this.editandoPool()?.id;
   }
 
-  // ===== HU-21: pools =====
+  // HU-21
 
   guardarPool(): void {
     if (this.poolForm.invalid) {
@@ -174,9 +173,9 @@ export class PoolListComponent implements OnInit {
     this.ejecutar(this.poolService.delete(this.id, pool.id), 'No fue posible eliminar el pool');
   }
 
-  // ===== HU-22: lanes =====
+  // HU-22
 
-  // Al elegir el rol, la lane toma su nombre si el campo está vacío
+  // La lane toma el nombre del rol si está vacía
   elegirRol(): void {
     const rol = this.roles().find(r => r.id === Number(this.laneForm.controls.rolProcesoId.value));
     if (rol && !this.laneForm.controls.nombre.value) {

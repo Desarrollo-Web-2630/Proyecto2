@@ -6,7 +6,7 @@ import { RolProceso } from '../../models/rol-proceso.model';
 import { RolProcesoService } from '../../services/rol-proceso.service';
 import { SesionService } from '../../services/sesion.service';
 
-// HU-19 y HU-20: catálogo de roles de proceso con búsqueda y paginación
+// HU-19 y HU-20
 @Component({
   selector: 'app-rol-list',
   changeDetection: ChangeDetectionStrategy.OnPush,

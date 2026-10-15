@@ -5,7 +5,7 @@ import { RolAcceso, Usuario } from '../../models/usuario.model';
 import { SesionService } from '../../services/sesion.service';
 import { UsuarioService } from '../../services/usuario.service';
 
-// HU-02: todos ven la lista; solo el administrador cambia roles y desactiva
+// HU-02
 @Component({
   selector: 'app-usuario-list',
   changeDetection: ChangeDetectionStrategy.OnPush,

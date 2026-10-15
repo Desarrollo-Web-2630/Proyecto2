@@ -1,4 +1,4 @@
-// Respuesta paginada de Spring (solo los campos que se usan)
+// Respuesta paginada de Spring
 export interface Page<T> {
   content: T[];
   totalElements: number;

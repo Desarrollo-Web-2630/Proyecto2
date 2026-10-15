@@ -7,13 +7,12 @@ import { Lane } from '../../models/lane.model';
 import { ActividadService } from '../../services/actividad.service';
 import { LaneService } from '../../services/lane.service';
 import { PoolService } from '../../services/pool.service';
-import { FieldErrorComponent } from '../../shared/field-error/field-error.component';
 
-// HU-08 (crear) y HU-09 (editar). La lane define el rol responsable
+// HU-08 y HU-09
 @Component({
   selector: 'app-actividad-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, FieldErrorComponent],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './actividad-form.component.html'
 })
 export class ActividadFormComponent implements OnInit {

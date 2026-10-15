@@ -8,7 +8,7 @@ import { EmpresaService } from '../../services/empresa.service';
 import { ProcesoService } from '../../services/proceso.service';
 import { SesionService } from '../../services/sesion.service';
 
-// HU-23: solo el administrador de la empresa dueña cambia la compartición
+// HU-23
 @Component({
   selector: 'app-proceso-compartir',
   changeDetection: ChangeDetectionStrategy.OnPush,

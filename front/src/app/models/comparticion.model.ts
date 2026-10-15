@@ -1,4 +1,4 @@
-// Empresas con las que se comparte un proceso en solo lectura
+// Empresas que pueden ver un proceso
 export interface Comparticion {
   compartido: boolean;
   empresasIds: number[];

@@ -3,13 +3,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
 import { AuthService } from '../../services/auth.service';
-import { FieldErrorComponent } from '../../shared/field-error/field-error.component';
 
-// Activa la cuenta con el token del correo y define la contraseña
+// Activar cuenta con el token del correo
 @Component({
   selector: 'app-activar-cuenta',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, FieldErrorComponent],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './activar-cuenta.component.html'
 })
 export class ActivarCuentaComponent implements OnInit {

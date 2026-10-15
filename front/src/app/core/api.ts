@@ -1,8 +1,7 @@
 import axios from 'axios';
-import { environment } from '../../environments/environment';
 
-// Cliente HTTP que usan todos los servicios
+// Cliente HTTP de todos los servicios
 export const api = axios.create({
-  baseURL: environment.apiUrl,
+  baseURL: '/api',
   headers: { 'Content-Type': 'application/json' }
 });

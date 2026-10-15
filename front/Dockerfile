@@ -1,4 +1,4 @@
-# ---- 1. Build de Angular
+# Etapa 1: compilar Angular
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -6,7 +6,7 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# ---- 2. Servir con nginx (reenvia /api al backend, sin CORS)
+# Etapa 2: servir con nginx
 FROM nginx:1.27-alpine
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist/procesos-front/browser /usr/share/nginx/html

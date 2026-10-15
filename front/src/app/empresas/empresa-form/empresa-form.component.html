@@ -19,25 +19,25 @@
         Nombre de la empresa
         <input formControlName="nombre" autocomplete="organization">
       </label>
-      <app-field-error
-        [control]="form.controls.nombre"
-        [messages]="{ required: 'El nombre es obligatorio', minlength: 'Mínimo 2 caracteres', maxlength: 'Máximo 255 caracteres' }" />
+      @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+        <small class="error">@if (form.controls.nombre.hasError('required')) { El nombre es obligatorio } @else if (form.controls.nombre.hasError('minlength')) { Mínimo 2 caracteres } @else if (form.controls.nombre.hasError('maxlength')) { Máximo 255 caracteres }</small>
+      }
 
       <label>
         NIT
         <input formControlName="nit" placeholder="900123456-7">
       </label>
-      <app-field-error
-        [control]="form.controls.nit"
-        [messages]="{ required: 'El NIT es obligatorio', pattern: 'De 9 a 12 dígitos, por ejemplo 900123456-7' }" />
+      @if (form.controls.nit.touched && form.controls.nit.invalid) {
+        <small class="error">@if (form.controls.nit.hasError('required')) { El NIT es obligatorio } @else if (form.controls.nit.hasError('pattern')) { De 9 a 12 dígitos, por ejemplo 900123456-7 }</small>
+      }
 
       <label>
         Correo de contacto
         <input type="email" formControlName="correo" autocomplete="email">
       </label>
-      <app-field-error
-        [control]="form.controls.correo"
-        [messages]="{ required: 'El correo es obligatorio', email: 'El correo no tiene un formato válido' }" />
+      @if (form.controls.correo.touched && form.controls.correo.invalid) {
+        <small class="error">@if (form.controls.correo.hasError('required')) { El correo es obligatorio } @else if (form.controls.correo.hasError('email')) { El correo no tiene un formato válido }</small>
+      }
       <small class="nota">Será el usuario administrador de la empresa.</small>
 
       @if (message()) {

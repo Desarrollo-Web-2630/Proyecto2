@@ -15,7 +15,7 @@ import { RolProcesoService } from '../../services/rol-proceso.service';
 import { SesionService } from '../../services/sesion.service';
 import { PoolDiagramaComponent } from '../../pools/pool-diagrama/pool-diagrama.component';
 
-// HU-08 a HU-10: actividades del proceso
+// HU-08 a HU-10
 @Component({
   selector: 'app-actividad-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,7 +43,7 @@ export class ActividadListComponent implements OnInit {
   protected readonly actionError = signal('');
 
   private readonly propia = computed(() => this.proceso()?.empresaId === this.sesion.usuario()?.empresaId);
-  // Crear y editar: administrador y editor. Eliminar: solo administrador
+  // Eliminar es solo para el administrador
   protected readonly puedeEditar = computed(() => this.propia() && this.sesion.usuario()?.rolAcceso !== 'LECTURA');
   protected readonly puedeEliminar = computed(() => this.propia() && this.sesion.esAdmin());
 
@@ -79,7 +79,7 @@ export class ActividadListComponent implements OnInit {
     return this.lanes().find(l => l.id === laneId)?.nombre ?? 'Lane no encontrada';
   }
 
-  // HU-10: antes de eliminar se avisa qué arcos se borran con la actividad
+  // HU-10: avisa cuántos arcos se borran
   async remove(actividad: Actividad): Promise<void> {
     this.actionError.set('');
     const id = Number(this.procesoId());

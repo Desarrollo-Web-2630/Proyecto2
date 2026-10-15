@@ -4,13 +4,12 @@ import { Router, RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
 import { RolProceso, RolProcesoRequest } from '../../models/rol-proceso.model';
 import { RolProcesoService } from '../../services/rol-proceso.service';
-import { FieldErrorComponent } from '../../shared/field-error/field-error.component';
 
 // HU-17 (crear) y HU-18 (editar)
 @Component({
   selector: 'app-rol-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, FieldErrorComponent],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './rol-form.component.html'
 })
 export class RolFormComponent implements OnInit {

@@ -1,6 +1,6 @@
 import { RolAcceso } from './usuario.model';
 
-// Roles de acceso que pueden crear, editar o eliminar pools y lanes
+// Roles de acceso permitidos por acción
 export interface PermisosPool {
   crear: RolAcceso[];
   editar: RolAcceso[];

@@ -5,13 +5,12 @@ import { mensajeDeError } from '../../core/api-error';
 import { RolAcceso, UsuarioRequest } from '../../models/usuario.model';
 import { SesionService } from '../../services/sesion.service';
 import { UsuarioService } from '../../services/usuario.service';
-import { FieldErrorComponent } from '../../shared/field-error/field-error.component';
 
-// HU-02: el usuario invitado queda inactivo hasta que abra el enlace del correo
+// HU-02: invitar usuario
 @Component({
   selector: 'app-usuario-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, FieldErrorComponent],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './usuario-form.component.html'
 })
 export class UsuarioFormComponent {

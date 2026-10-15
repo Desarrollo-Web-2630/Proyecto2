@@ -10,25 +10,25 @@
         Código de activación
         <input formControlName="token">
       </label>
-      <app-field-error
-        [control]="form.controls.token"
-        [messages]="{ required: 'El código es obligatorio' }" />
+      @if (form.controls.token.touched && form.controls.token.invalid) {
+        <small class="error">El código es obligatorio</small>
+      }
 
       <label>
         Contraseña
         <input type="password" formControlName="nuevaPassword" autocomplete="new-password">
       </label>
-      <app-field-error
-        [control]="form.controls.nuevaPassword"
-        [messages]="{ required: 'La contraseña es obligatoria', pattern: 'Mínimo 8 caracteres, con mayúscula, minúscula y número' }" />
+      @if (form.controls.nuevaPassword.touched && form.controls.nuevaPassword.invalid) {
+        <small class="error">@if (form.controls.nuevaPassword.hasError('required')) { La contraseña es obligatoria } @else if (form.controls.nuevaPassword.hasError('pattern')) { Mínimo 8 caracteres, con mayúscula, minúscula y número }</small>
+      }
 
       <label>
         Confirmar contraseña
         <input type="password" formControlName="confirmacion" autocomplete="new-password">
       </label>
-      <app-field-error
-        [control]="form.controls.confirmacion"
-        [messages]="{ required: 'Confirma la contraseña' }" />
+      @if (form.controls.confirmacion.touched && form.controls.confirmacion.invalid) {
+        <small class="error">Confirma la contraseña</small>
+      }
 
       @if (message()) {
         <p class="error" role="alert">{{ message() }}</p>
@@ -47,9 +47,9 @@
         Correo
         <input type="email" formControlName="correo">
       </label>
-      <app-field-error
-        [control]="formReenvio.controls.correo"
-        [messages]="{ required: 'El correo es obligatorio', email: 'El correo no tiene un formato válido' }" />
+      @if (formReenvio.controls.correo.touched && formReenvio.controls.correo.invalid) {
+        <small class="error">@if (formReenvio.controls.correo.hasError('required')) { El correo es obligatorio } @else if (formReenvio.controls.correo.hasError('email')) { El correo no tiene un formato válido }</small>
+      }
       @if (reenvio()) {
         <p class="nota">{{ reenvio() }}</p>
       }

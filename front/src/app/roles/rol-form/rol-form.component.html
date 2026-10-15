@@ -8,17 +8,17 @@
       Nombre
       <input formControlName="nombre" placeholder="Analista">
     </label>
-    <app-field-error
-      [control]="form.controls.nombre"
-      [messages]="{ required: 'El nombre es obligatorio', maxlength: 'Máximo 100 caracteres' }" />
+    @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+      <small class="error">@if (form.controls.nombre.hasError('required')) { El nombre es obligatorio } @else if (form.controls.nombre.hasError('maxlength')) { Máximo 100 caracteres }</small>
+    }
 
     <label>
       Descripción
       <input formControlName="descripcion">
     </label>
-    <app-field-error
-      [control]="form.controls.descripcion"
-      [messages]="{ required: 'La descripción es obligatoria', maxlength: 'Máximo 500 caracteres' }" />
+    @if (form.controls.descripcion.touched && form.controls.descripcion.invalid) {
+      <small class="error">@if (form.controls.descripcion.hasError('required')) { La descripción es obligatoria } @else if (form.controls.descripcion.hasError('maxlength')) { Máximo 500 caracteres }</small>
+    }
 
     @if (message()) {
       <p class="error" role="alert">{{ message() }}</p>

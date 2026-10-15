@@ -4,7 +4,7 @@ import { Lane } from '../../models/lane.model';
 import { Pool } from '../../models/pool.model';
 import { RolProceso } from '../../models/rol-proceso.model';
 
-// Dibuja los pools del proceso: el de la empresa con sus lanes y los externos como caja negra
+// Diagrama de pools y lanes del proceso
 @Component({
   selector: 'app-pool-diagrama',
   templateUrl: './pool-diagrama.component.html',
@@ -26,7 +26,7 @@ export class PoolDiagramaComponent {
     return this.roles.find(r => r.id === rolId)?.nombre ?? 'Sin rol';
   }
 
-  // Actividades cuya lane no existe: es un error de modelado
+  // Actividades con una lane que no existe
   actividadesSinLane(): Actividad[] {
     return this.actividades.filter(a => !this.lanes.some(l => l.id === a.laneId));
   }

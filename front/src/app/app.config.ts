@@ -7,7 +7,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    // withComponentInputBinding: los parámetros de ruta y query params llegan como input()
+    // Los parámetros de ruta llegan como input()
     provideRouter(routes, withComponentInputBinding())
   ]
 };

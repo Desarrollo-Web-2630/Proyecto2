@@ -6,8 +6,7 @@ import { PermisosPoolService } from '../../services/permisos-pool.service';
 import { RolProcesoService } from '../../services/rol-proceso.service';
 import { SesionService } from '../../services/sesion.service';
 
-// HU-24: el administrador decide si el editor puede modificar pools y lanes.
-// El administrador siempre puede y solo lectura nunca.
+// HU-24: permisos del editor sobre pools y lanes
 @Component({
   selector: 'app-permisos-pool-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
