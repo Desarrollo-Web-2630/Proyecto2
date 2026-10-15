@@ -1,0 +1,62 @@
+<main>
+  <h2>Activar cuenta</h2>
+
+  @if (activada()) {
+    <p class="exito">{{ activada() }}</p>
+    <a class="boton" routerLink="/login">Iniciar sesión</a>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label>
+        Código de activación
+        <input formControlName="token">
+      </label>
+      @if (form.controls.token.touched && form.controls.token.invalid) {
+        <small class="error">El código es obligatorio</small>
+      }
+
+      <label>
+        Contraseña
+        <input type="password" formControlName="nuevaPassword" autocomplete="new-password">
+      </label>
+      @if (form.controls.nuevaPassword.touched && form.controls.nuevaPassword.invalid) {
+        <small class="error">@if (form.controls.nuevaPassword.hasError('required')) { La contraseña es obligatoria } @else if (form.controls.nuevaPassword.hasError('pattern')) { Mínimo 8 caracteres, con mayúscula, minúscula y número }</small>
+      }
+
+      <label>
+        Confirmar contraseña
+        <input type="password" formControlName="confirmacion" autocomplete="new-password">
+      </label>
+      @if (form.controls.confirmacion.touched && form.controls.confirmacion.invalid) {
+        <small class="error">Confirma la contraseña</small>
+      }
+
+      @if (message()) {
+        <p class="error" role="alert">{{ message() }}</p>
+      }
+
+      <div class="acciones">
+        <button type="submit" [disabled]="saving()">
+          {{ saving() ? 'Activando…' : 'Activar' }}
+        </button>
+      </div>
+    </form>
+
+    <h3>¿No te llegó el correo?</h3>
+    <form [formGroup]="formReenvio" (ngSubmit)="reenviar()" novalidate>
+      <label>
+        Correo
+        <input type="email" formControlName="correo">
+      </label>
+      @if (formReenvio.controls.correo.touched && formReenvio.controls.correo.invalid) {
+        <small class="error">@if (formReenvio.controls.correo.hasError('required')) { El correo es obligatorio } @else if (formReenvio.controls.correo.hasError('email')) { El correo no tiene un formato válido }</small>
+      }
+      @if (reenvio()) {
+        <p class="nota">{{ reenvio() }}</p>
+      }
+      <div class="acciones">
+        <button type="submit" class="secundario">Reenviar enlace</button>
+        <a routerLink="/login">Volver</a>
+      </div>
+    </form>
+  }
+</main>

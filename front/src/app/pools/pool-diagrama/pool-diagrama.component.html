@@ -1,0 +1,34 @@
+@for (pool of pools; track pool.id) {
+  <div class="pool">
+    <div class="pool-nombre">{{ pool.nombre }}</div>
+    @if (pool.tipo === 'PROPIETARIO') {
+      <div class="pool-lanes">
+        @for (lane of lanes; track lane.id) {
+          <div class="lane">
+            <div class="lane-nombre">
+              {{ lane.nombre }}
+              <small>Rol: {{ nombreRol(lane.rolProcesoId) }}</small>
+            </div>
+            <div class="lane-actividades">
+              @for (a of actividadesDe(lane.id); track a.id) {
+                <div class="actividad">{{ a.nombre }}</div>
+              }
+            </div>
+          </div>
+        } @empty {
+          <p class="vacio">Sin lanes</p>
+        }
+      </div>
+    } @else {
+      <div class="caja-negra">Participante externo</div>
+    }
+  </div>
+} @empty {
+  <p class="nota">El proceso aún no tiene pools.</p>
+}
+
+@if (actividadesSinLane().length > 0) {
+  <p class="error">
+    Hay {{ actividadesSinLane().length }} actividad(es) asignadas a una lane que no existe.
+  </p>
+}

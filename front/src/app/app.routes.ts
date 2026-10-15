@@ -1,68 +1,42 @@
 import { Routes } from '@angular/router';
-import { autenticadoGuard, invitadoGuard, rolGuard } from './core/auth.guard';
-import { Shell } from './layout/shell';
+import { LayoutComponent } from './layout/layout.component';
 
 export const routes: Routes = [
-  // Públicas
   {
-    path: 'login',
-    canActivate: [invitadoGuard],
-    loadComponent: () => import('./historiasusuario/auth/login/login').then((m) => m.Login),
+    path: '',
+    pathMatch: 'full',
+    title: 'Procesos',
+    loadComponent: () => import('./inicio/inicio.component').then(m => m.InicioComponent)
   },
   {
-    path: 'registro',
-    canActivate: [invitadoGuard],
-    loadComponent: () =>
-      import('./historiasusuario/empresas/registro-empresa/registro-empresa').then((m) => m.RegistroEmpresa),
+    path: 'login',
+    title: 'Iniciar sesión',
+    loadComponent: () => import('./auth/login/login.component').then(m => m.LoginComponent)
   },
   {
     path: 'activar-cuenta',
-    loadComponent: () =>
-      import('./historiasusuario/auth/activar-cuenta/activar-cuenta').then((m) => m.ActivarCuenta),
+    title: 'Activar cuenta',
+    loadComponent: () => import('./auth/activar-cuenta/activar-cuenta.component').then(m => m.ActivarCuentaComponent)
   },
-
-  // Requieren sesión
+  {
+    path: 'registro',
+    title: 'Registrar empresa',
+    loadComponent: () => import('./empresas/empresa-form/empresa-form.component').then(m => m.EmpresaFormComponent)
+  },
+  // Pantallas que requieren sesión
   {
     path: '',
-    component: Shell,
-    canActivate: [autenticadoGuard],
+    component: LayoutComponent,
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'procesos' },
+      { path: 'procesos', loadChildren: () => import('./procesos/procesos.routes').then(m => m.PROCESOS_ROUTES) },
+      { path: 'usuarios', loadChildren: () => import('./usuarios/usuarios.routes').then(m => m.USUARIOS_ROUTES) },
+      { path: 'roles', loadChildren: () => import('./roles/roles.routes').then(m => m.ROLES_ROUTES) },
       {
-        path: 'procesos',
-        loadComponent: () =>
-          import('./historiasusuario/procesos/lista-procesos/lista-procesos').then((m) => m.ListaProcesos),
-      },
-      {
-        path: 'usuarios',
-        loadComponent: () =>
-          import('./historiasusuario/usuarios/gestion-usuarios/gestion-usuarios').then((m) => m.GestionUsuarios),
-      },
-      {
-        path: 'procesos/compartidos',
-        loadComponent: () =>
-          import('./historiasusuario/pools/procesos-compartidos/procesos-compartidos').then(
-            (m) => m.ProcesosCompartidos,
-          ),
-      },
-      {
-        path: 'procesos/:procesoId/pools',
-        loadComponent: () =>
-          import('./historiasusuario/pools/pools-proceso/pools-proceso').then((m) => m.PoolsProceso),
-      },
-      {
-        path: 'procesos/:procesoId/compartir',
-        canActivate: [rolGuard('ADMIN')],
-        loadComponent: () =>
-          import('./historiasusuario/pools/compartir-proceso/compartir-proceso').then((m) => m.CompartirProceso),
-      },
-      {
-        path: 'configuracion/permisos-pool',
-        canActivate: [rolGuard('ADMIN')],
-        loadComponent: () =>
-          import('./historiasusuario/pools/permisos-pool/permisos-pool').then((m) => m.PermisosPoolPagina),
-      },
-    ],
+        path: 'permisos-pool',
+        title: 'Permisos de pools',
+        loadComponent: () => import('./pools/permisos-pool-form/permisos-pool-form.component').then(m => m.PermisosPoolFormComponent)
+      }
+    ]
   },
-  { path: '**', redirectTo: '' },
+  { path: '**', redirectTo: '' }
 ];

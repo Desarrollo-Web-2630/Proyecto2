@@ -1,0 +1,37 @@
+.pool {
+  display: flex;
+  margin-bottom: 1rem;
+  background: #fff;
+  border: 2px solid var(--ciruela);
+}
+.pool-nombre {
+  padding: 0.5rem;
+  border-right: 2px solid var(--ciruela);
+  font-weight: 600;
+  text-align: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.pool-lanes { flex: 1; }
+.lane { display: flex; min-height: 90px; border-bottom: 1px solid #ddd6d0; }
+.lane:last-child { border-bottom: none; }
+.lane:nth-child(odd) { background: #f3eff4; }
+.lane-nombre {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 140px;
+  padding: 0.5rem;
+  border-right: 1px solid var(--ciruela);
+  font-weight: 600;
+}
+.lane-nombre small { font-weight: 400; color: #6b5f6e; }
+.lane-actividades { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding: 0.5rem 1rem; }
+.actividad {
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border: 2px solid var(--malva);
+  border-radius: 0.5rem;
+}
+.caja-negra { flex: 1; padding: 1.5rem; color: #6b5f6e; text-align: center; }
+.vacio { padding: 1rem; color: #6b5f6e; }
