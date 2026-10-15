@@ -1,0 +1,52 @@
+<h2>Invitar usuario</h2>
+
+@if (!sesion.esAdmin()) {
+  <p class="error">Solo el administrador de la empresa puede invitar usuarios.</p>
+  <a routerLink="/usuarios">Volver</a>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label>
+      Nombre
+      <input formControlName="nombre" autocomplete="name">
+    </label>
+    <app-field-error
+      [control]="form.controls.nombre"
+      [messages]="{ required: 'El nombre es obligatorio', minlength: 'Mínimo 2 caracteres', maxlength: 'Máximo 255 caracteres' }" />
+
+    <label>
+      Correo
+      <input type="email" formControlName="correo" autocomplete="email">
+    </label>
+    <app-field-error
+      [control]="form.controls.correo"
+      [messages]="{ required: 'El correo es obligatorio', email: 'El correo no tiene un formato válido' }" />
+
+    <label>
+      Contraseña inicial
+      <input type="password" formControlName="password" autocomplete="new-password">
+    </label>
+    <app-field-error
+      [control]="form.controls.password"
+      [messages]="{ required: 'La contraseña es obligatoria', pattern: 'Mínimo 8 caracteres, con mayúscula, minúscula y número' }" />
+
+    <label>
+      Rol de acceso
+      <select formControlName="rolAcceso">
+        @for (r of roles; track r) {
+          <option [value]="r">{{ r }}</option>
+        }
+      </select>
+    </label>
+
+    @if (message()) {
+      <p class="error" role="alert">{{ message() }}</p>
+    }
+
+    <div class="acciones">
+      <button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Invitando…' : 'Invitar' }}
+      </button>
+      <a routerLink="/usuarios">Cancelar</a>
+    </div>
+  </form>
+}

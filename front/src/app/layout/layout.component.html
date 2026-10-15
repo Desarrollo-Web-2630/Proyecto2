@@ -1,0 +1,22 @@
+<header>
+  <h1>Procesos</h1>
+  <nav aria-label="Principal">
+    <a routerLink="/procesos" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }">Mis procesos</a>
+    <a routerLink="/procesos/compartidos" routerLinkActive="activo">Compartidos conmigo</a>
+    <a routerLink="/roles" routerLinkActive="activo">Roles de proceso</a>
+    <a routerLink="/usuarios" routerLinkActive="activo">Usuarios</a>
+    @if (sesion.esAdmin()) {
+      <a routerLink="/permisos-pool" routerLinkActive="activo">Permisos de pools</a>
+    }
+  </nav>
+  @if (sesion.usuario(); as u) {
+    <div class="usuario">
+      <span>{{ u.nombre }} · {{ u.rolAcceso }}</span>
+      <button type="button" class="secundario" (click)="logout()">Cerrar sesión</button>
+    </div>
+  }
+</header>
+
+<main>
+  <router-outlet />
+</main>

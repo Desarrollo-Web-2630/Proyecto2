@@ -1,0 +1,55 @@
+<main>
+  <h2>Registrar empresa</h2>
+
+  @if (registrada(); as empresa) {
+    <div class="tarjeta">
+      <p class="exito">La empresa {{ empresa.nombre }} quedó registrada.</p>
+      <p>
+        Enviamos a {{ empresa.correo }} un enlace para activar el usuario administrador.
+        Si el servidor no tiene correo configurado, el enlace aparece en la consola del backend.
+      </p>
+      <div class="acciones">
+        <a class="boton" routerLink="/activar-cuenta">Activar cuenta</a>
+        <a routerLink="/login">Iniciar sesión</a>
+      </div>
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label>
+        Nombre de la empresa
+        <input formControlName="nombre" autocomplete="organization">
+      </label>
+      <app-field-error
+        [control]="form.controls.nombre"
+        [messages]="{ required: 'El nombre es obligatorio', minlength: 'Mínimo 2 caracteres', maxlength: 'Máximo 255 caracteres' }" />
+
+      <label>
+        NIT
+        <input formControlName="nit" placeholder="900123456-7">
+      </label>
+      <app-field-error
+        [control]="form.controls.nit"
+        [messages]="{ required: 'El NIT es obligatorio', pattern: 'De 9 a 12 dígitos, por ejemplo 900123456-7' }" />
+
+      <label>
+        Correo de contacto
+        <input type="email" formControlName="correo" autocomplete="email">
+      </label>
+      <app-field-error
+        [control]="form.controls.correo"
+        [messages]="{ required: 'El correo es obligatorio', email: 'El correo no tiene un formato válido' }" />
+      <small class="nota">Será el usuario administrador de la empresa.</small>
+
+      @if (message()) {
+        <p class="error" role="alert">{{ message() }}</p>
+      }
+
+      <div class="acciones">
+        <button type="submit" [disabled]="saving()">
+          {{ saving() ? 'Registrando…' : 'Registrar' }}
+        </button>
+        <a routerLink="/login">Ya tengo cuenta</a>
+      </div>
+    </form>
+  }
+</main>

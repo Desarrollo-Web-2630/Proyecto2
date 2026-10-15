@@ -1,0 +1,69 @@
+<div class="encabezado">
+  <h2>Roles de proceso</h2>
+  @if (sesion.esAdmin()) {
+    <a class="boton" routerLink="nuevo">+ Nuevo rol</a>
+  }
+</div>
+<p class="nota">Un rol de proceso es la función responsable de una actividad (Analista, Supervisor…), no una persona.</p>
+
+<form class="acciones" (ngSubmit)="buscar()">
+  <input name="nombre" [(ngModel)]="nombre" placeholder="Buscar por nombre" aria-label="Buscar por nombre">
+  <button type="submit">Buscar</button>
+</form>
+
+@if (actionError()) {
+  <p class="error" role="alert">{{ actionError() }}</p>
+}
+
+@switch (status()) {
+  @case ('loading') {
+    <p>Cargando roles…</p>
+  }
+  @case ('error') {
+    <p class="error" role="alert">{{ message() }}</p>
+    <button type="button" (click)="load()">Reintentar</button>
+  }
+  @case ('success') {
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Nombre</th>
+          <th scope="col">Descripción</th>
+          <th scope="col">Usado en</th>
+          <th scope="col"><span class="nota">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of roles(); track r.id) {
+          <tr>
+            <td>{{ r.nombre }}</td>
+            <td>{{ r.descripcion }}</td>
+            <td>
+              @for (p of r.procesosEnUso; track p.id) {
+                <span class="etiqueta">{{ p.nombre }}</span>
+              } @empty {
+                <span class="nota">Sin usar</span>
+              }
+            </td>
+            <td class="acciones-fila">
+              @if (sesion.esAdmin()) {
+                <a [routerLink]="[r.id, 'editar']">Editar</a>
+                <button type="button" class="enlace peligro" (click)="remove(r)">Eliminar</button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="4">No hay roles de proceso.</td></tr>
+        }
+      </tbody>
+    </table>
+
+    @if (totalPaginas() > 1) {
+      <div class="acciones">
+        <button type="button" class="secundario" [disabled]="pagina() === 0" (click)="irAPagina(pagina() - 1)">Anterior</button>
+        <span>Página {{ pagina() + 1 }} de {{ totalPaginas() }}</span>
+        <button type="button" class="secundario" [disabled]="pagina() + 1 >= totalPaginas()" (click)="irAPagina(pagina() + 1)">Siguiente</button>
+      </div>
+    }
+  }
+}

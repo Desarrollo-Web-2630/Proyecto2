@@ -1,0 +1,64 @@
+<h2>{{ editing() ? 'Editar actividad' : 'Nueva actividad' }}</h2>
+
+@if (loading()) {
+  <p>Cargando…</p>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label>
+      Nombre
+      <input formControlName="nombre">
+    </label>
+    <app-field-error
+      [control]="form.controls.nombre"
+      [messages]="{ required: 'El nombre es obligatorio', maxlength: 'Máximo 255 caracteres' }" />
+
+    <label>
+      Tipo
+      <select formControlName="tipoActividad">
+        @for (t of tipos; track t) {
+          <option [value]="t">{{ t }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      Lane responsable
+      <select formControlName="laneId">
+        <option [ngValue]="null" disabled>Selecciona una lane</option>
+        @for (l of lanes(); track l.id) {
+          <option [ngValue]="l.id">{{ l.nombre }}</option>
+        }
+      </select>
+    </label>
+    <app-field-error
+      [control]="form.controls.laneId"
+      [messages]="{ required: 'Selecciona la lane de la actividad' }" />
+
+    <label>
+      Posición X
+      <input type="number" formControlName="posicionX" min="0">
+    </label>
+    <app-field-error
+      [control]="form.controls.posicionX"
+      [messages]="{ required: 'La posición X es obligatoria', min: 'No puede ser negativa' }" />
+
+    <label>
+      Posición Y
+      <input type="number" formControlName="posicionY" min="0">
+    </label>
+    <app-field-error
+      [control]="form.controls.posicionY"
+      [messages]="{ required: 'La posición Y es obligatoria', min: 'No puede ser negativa' }" />
+
+    @if (message()) {
+      <p class="error" role="alert">{{ message() }}</p>
+    }
+
+    <div class="acciones">
+      <button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Guardando…' : 'Guardar' }}
+      </button>
+      <a [routerLink]="['/procesos', procesoId(), 'actividades']">Cancelar</a>
+    </div>
+  </form>
+}

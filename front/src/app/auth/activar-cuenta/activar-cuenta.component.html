@@ -1,0 +1,62 @@
+<main>
+  <h2>Activar cuenta</h2>
+
+  @if (activada()) {
+    <p class="exito">{{ activada() }}</p>
+    <a class="boton" routerLink="/login">Iniciar sesión</a>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label>
+        Código de activación
+        <input formControlName="token">
+      </label>
+      <app-field-error
+        [control]="form.controls.token"
+        [messages]="{ required: 'El código es obligatorio' }" />
+
+      <label>
+        Contraseña
+        <input type="password" formControlName="nuevaPassword" autocomplete="new-password">
+      </label>
+      <app-field-error
+        [control]="form.controls.nuevaPassword"
+        [messages]="{ required: 'La contraseña es obligatoria', pattern: 'Mínimo 8 caracteres, con mayúscula, minúscula y número' }" />
+
+      <label>
+        Confirmar contraseña
+        <input type="password" formControlName="confirmacion" autocomplete="new-password">
+      </label>
+      <app-field-error
+        [control]="form.controls.confirmacion"
+        [messages]="{ required: 'Confirma la contraseña' }" />
+
+      @if (message()) {
+        <p class="error" role="alert">{{ message() }}</p>
+      }
+
+      <div class="acciones">
+        <button type="submit" [disabled]="saving()">
+          {{ saving() ? 'Activando…' : 'Activar' }}
+        </button>
+      </div>
+    </form>
+
+    <h3>¿No te llegó el correo?</h3>
+    <form [formGroup]="formReenvio" (ngSubmit)="reenviar()" novalidate>
+      <label>
+        Correo
+        <input type="email" formControlName="correo">
+      </label>
+      <app-field-error
+        [control]="formReenvio.controls.correo"
+        [messages]="{ required: 'El correo es obligatorio', email: 'El correo no tiene un formato válido' }" />
+      @if (reenvio()) {
+        <p class="nota">{{ reenvio() }}</p>
+      }
+      <div class="acciones">
+        <button type="submit" class="secundario">Reenviar enlace</button>
+        <a routerLink="/login">Volver</a>
+      </div>
+    </form>
+  }
+</main>

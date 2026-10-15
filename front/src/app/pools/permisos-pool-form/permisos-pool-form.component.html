@@ -1,0 +1,64 @@
+<h2>Permisos sobre pools y lanes</h2>
+
+@if (!sesion.esAdmin()) {
+  <p class="error">Solo el administrador de la empresa puede cambiar estos permisos.</p>
+} @else {
+  @switch (status()) {
+    @case ('loading') {
+      <p>Cargando…</p>
+    }
+    @case ('error') {
+      <p class="error" role="alert">{{ message() }}</p>
+    }
+    @case ('success') {
+      <div class="tarjeta">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Acción</th>
+              <th scope="col">ADMIN</th>
+              <th scope="col">EDITOR</th>
+              <th scope="col">LECTURA</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of acciones; track a.clave) {
+              <tr>
+                <td>{{ a.texto }}</td>
+                <td><input type="checkbox" checked disabled [attr.aria-label]="a.texto + ' ADMIN'"></td>
+                <td>
+                  <input type="checkbox" [checked]="editorPuede(a.clave)" (change)="alternarEditor(a.clave)"
+                         [attr.aria-label]="a.texto + ' EDITOR'">
+                </td>
+                <td><input type="checkbox" disabled [attr.aria-label]="a.texto + ' LECTURA'"></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <p class="nota">El administrador siempre puede modificar la estructura y solo lectura nunca.</p>
+
+        @if (message()) {
+          <p class="error" role="alert">{{ message() }}</p>
+        }
+        @if (guardado()) {
+          <p class="exito">{{ guardado() }}</p>
+        }
+
+        <div class="acciones">
+          <button type="button" [disabled]="saving()" (click)="guardar()">
+            {{ saving() ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <h3>Roles de proceso que se pueden asignar a las lanes</h3>
+        @for (r of roles(); track r.id) {
+          <p><strong>{{ r.nombre }}</strong>: {{ r.descripcion }}</p>
+        } @empty {
+          <p class="nota">La empresa aún no tiene roles de proceso.</p>
+        }
+      </div>
+    }
+  }
+}

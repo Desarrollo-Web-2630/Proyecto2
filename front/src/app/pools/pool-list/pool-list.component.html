@@ -1,0 +1,166 @@
+<div class="encabezado">
+  <div>
+    <a routerLink="/procesos">← Procesos</a>
+    <h2>{{ proceso()?.nombre }} · pools y lanes</h2>
+  </div>
+  @if (!soloLectura()) {
+    <a [routerLink]="['/procesos', procesoId(), 'actividades']">Actividades</a>
+  }
+</div>
+
+@switch (status()) {
+  @case ('loading') {
+    <p>Cargando…</p>
+  }
+  @case ('error') {
+    <p class="error" role="alert">{{ message() }}</p>
+  }
+  @case ('success') {
+    @if (soloLectura()) {
+      <p class="etiqueta">Proceso compartido: solo lectura</p>
+    }
+
+    <app-pool-diagrama [pools]="pools()" [lanes]="lanes()" [actividades]="actividades()" [roles]="roles()" />
+
+    @if (actionError()) {
+      <p class="error" role="alert">{{ actionError() }}</p>
+    }
+
+    <!-- HU-21: participantes del proceso -->
+    <div class="tarjeta">
+      <h3>Pools</h3>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Nombre</th>
+            <th scope="col">Tipo</th>
+            <th scope="col"><span class="nota">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (pool of pools(); track pool.id) {
+            <tr>
+              <td>{{ pool.nombre }}</td>
+              <td>{{ textoTipo(pool.tipo) }}</td>
+              <td class="acciones-fila">
+                @if (!soloLectura() && permisos.puede('editar')) {
+                  <button type="button" class="enlace" (click)="editarPool(pool)">Editar</button>
+                }
+                @if (!soloLectura() && permisos.puede('eliminar')) {
+                  <button type="button" class="enlace peligro" (click)="eliminarPool(pool)">Eliminar</button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="3">El proceso aún no tiene pools.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (!soloLectura() && (editandoPool() ? permisos.puede('editar') : permisos.puede('crear'))) {
+      <form [formGroup]="poolForm" (ngSubmit)="guardarPool()" novalidate>
+        <h3>{{ editandoPool() ? 'Editar pool' : 'Nuevo pool' }}</h3>
+        <label>
+          Nombre
+          <input formControlName="nombre">
+        </label>
+        <app-field-error
+          [control]="poolForm.controls.nombre"
+          [messages]="{ required: 'El nombre es obligatorio', maxlength: 'Máximo 120 caracteres' }" />
+        <label>
+          Tipo
+          <select formControlName="tipo">
+            @for (t of tipos; track t.valor) {
+              <option [value]="t.valor" [disabled]="tipoDeshabilitado(t.valor)">{{ t.texto }}</option>
+            }
+          </select>
+        </label>
+        <small class="nota">Los clientes, proveedores y sistemas externos son caja negra: no tienen lanes.</small>
+        <div class="acciones">
+          <button type="submit">{{ editandoPool() ? 'Guardar' : 'Crear pool' }}</button>
+          @if (editandoPool()) {
+            <button type="button" class="enlace" (click)="cancelarPool()">Cancelar</button>
+          }
+        </div>
+      </form>
+    }
+
+    <!-- HU-22: lanes del pool de la empresa -->
+    @if (propietario(); as pool) {
+      <div class="tarjeta">
+        <h3>Lanes de {{ pool.nombre }}</h3>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Lane</th>
+              <th scope="col">Rol de proceso</th>
+              <th scope="col">Actividades</th>
+              <th scope="col"><span class="nota">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (lane of lanes(); track lane.id; let i = $index, primero = $first, ultimo = $last) {
+              <tr>
+                <td>{{ i + 1 }}</td>
+                <td>{{ lane.nombre }}</td>
+                <td>{{ nombreRol(lane.rolProcesoId) }}</td>
+                <td>{{ cantidadActividades(lane.id) }}</td>
+                <td class="acciones-fila">
+                  @if (!soloLectura() && permisos.puede('editar')) {
+                    <button type="button" class="enlace" [disabled]="primero" (click)="mover(i, -1)">Subir</button>
+                    <button type="button" class="enlace" [disabled]="ultimo" (click)="mover(i, 1)">Bajar</button>
+                    <button type="button" class="enlace" (click)="editarLane(lane)">Editar</button>
+                  }
+                  @if (!soloLectura() && permisos.puede('eliminar')) {
+                    <button type="button" class="enlace peligro" (click)="eliminarLane(lane)">Eliminar</button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5">El pool aún no tiene lanes.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (!soloLectura() && (editandoLane() ? permisos.puede('editar') : permisos.puede('crear'))) {
+        @if (roles().length === 0) {
+          <p class="nota">
+            La empresa no tiene roles de proceso. <a routerLink="/roles/nuevo">Crea uno</a> para poder agregar lanes.
+          </p>
+        } @else {
+          <form [formGroup]="laneForm" (ngSubmit)="guardarLane()" novalidate>
+            <h3>{{ editandoLane() ? 'Editar lane' : 'Nueva lane' }}</h3>
+            <label>
+              Rol de proceso
+              <select formControlName="rolProcesoId" (change)="elegirRol()">
+                <option [ngValue]="null" disabled>Selecciona un rol</option>
+                @for (r of roles(); track r.id) {
+                  <option [ngValue]="r.id">{{ r.nombre }}</option>
+                }
+              </select>
+            </label>
+            <app-field-error
+              [control]="laneForm.controls.rolProcesoId"
+              [messages]="{ required: 'Selecciona un rol' }" />
+            <label>
+              Nombre de la lane
+              <input formControlName="nombre">
+            </label>
+            <app-field-error
+              [control]="laneForm.controls.nombre"
+              [messages]="{ required: 'El nombre es obligatorio', maxlength: 'Máximo 120 caracteres' }" />
+            <div class="acciones">
+              <button type="submit">{{ editandoLane() ? 'Guardar' : 'Agregar lane' }}</button>
+              @if (editandoLane()) {
+                <button type="button" class="enlace" (click)="cancelarLane()">Cancelar</button>
+              }
+            </div>
+          </form>
+        }
+      }
+    }
+  }
+}

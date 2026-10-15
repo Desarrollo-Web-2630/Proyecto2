@@ -1,0 +1,34 @@
+<h2>{{ editing() ? 'Editar rol' : 'Nuevo rol' }}</h2>
+
+@if (loading()) {
+  <p>Cargando…</p>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label>
+      Nombre
+      <input formControlName="nombre" placeholder="Analista">
+    </label>
+    <app-field-error
+      [control]="form.controls.nombre"
+      [messages]="{ required: 'El nombre es obligatorio', maxlength: 'Máximo 100 caracteres' }" />
+
+    <label>
+      Descripción
+      <input formControlName="descripcion">
+    </label>
+    <app-field-error
+      [control]="form.controls.descripcion"
+      [messages]="{ required: 'La descripción es obligatoria', maxlength: 'Máximo 500 caracteres' }" />
+
+    @if (message()) {
+      <p class="error" role="alert">{{ message() }}</p>
+    }
+
+    <div class="acciones">
+      <button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Guardando…' : 'Guardar' }}
+      </button>
+      <a routerLink="/roles">Cancelar</a>
+    </div>
+  </form>
+}

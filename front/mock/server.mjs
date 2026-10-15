@@ -38,7 +38,7 @@ http.createServer((req, res) => {
     if (m === 'GET' && p === '/api/v1/empresas') return send(res, 200, db.empresas);
     if ((r = p.match(/^\/api\/v1\/empresas\/(\d+)$/))) return send(res, 200, db.empresas.find(e => e.id == r[1]));
     // Igual que el backend real: el login NO devuelve empresaId
-    if (p === '/api/v1/usuarios/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); return u && b.password === 'Demo12345' ? send(res, 200, u) : send(res, 401); }
+    if (p === '/api/v1/usuarios/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); if (!u || b.password !== 'Demo12345') return send(res, 401); const { empresaId, ...v } = u; return send(res, 200, v); }
     if (p === '/api/v1/usuarios' && m === 'GET') return send(res, 200, db.usuarios.filter(u => u.empresaId == (req.headers['x-empresa-id'] ?? 1)).map(({ empresaId, ...u }) => u));
     if (p === '/api/v1/usuarios' && m === 'POST') { if (db.usuarios.some(u => u.correo === b.correo)) return err(res, 400, `Ya existe un usuario con el correo '${b.correo}'`); const u = { id: ++seq, nombre: b.nombre, correo: b.correo, rolAcceso: b.rolAcceso, activo: false, empresaId: +(req.headers['x-empresa-id'] ?? 1) }; db.usuarios.push(u); const { empresaId, ...v } = u; return send(res, 201, v); }
     if ((r = p.match(/^\/api\/v1\/usuarios\/(\d+)\/rol$/))) { const u = db.usuarios.find(x => x.id == r[1]); u.rolAcceso = u2.searchParams.get('rolAcceso'); return send(res, 200, u); }

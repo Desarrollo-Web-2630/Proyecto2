@@ -18,10 +18,10 @@ module.exports = tseslint.config(
       // Regla del curso: prohibido usar any
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unsafe-function-type": "error",
-      // Las llamadas HTTP pasan siempre por core/http/api-client.ts (axios)
-      "no-restricted-globals": ["error", { name: "fetch", message: "Usa los servicios de core/ (axios via ApiClient)." }],
+      // Las llamadas HTTP pasan por los servicios (axios en core/api.ts)
+      "no-restricted-globals": ["error", { name: "fetch", message: "Usa los servicios (axios en core/api.ts)." }],
       "no-restricted-imports": ["error", { paths: [
-        { name: "@angular/common/http", message: "El proyecto usa axios via ApiClient, no HttpClient." }
+        { name: "@angular/common/http", message: "El proyecto usa axios (core/api.ts), no HttpClient." }
       ] }],
       "@angular-eslint/directive-selector": [
         "error",
@@ -42,13 +42,13 @@ module.exports = tseslint.config(
     },
   },
   {
-    // Fuera de core/http nadie importa axios directamente
+    // Solo core/ importa axios
     files: ["src/app/**/*.ts"],
-    ignores: ["src/app/core/api-client.ts", "src/app/core/api-error.ts"],
+    ignores: ["src/app/core/api.ts", "src/app/core/api-error.ts"],
     rules: {
       "no-restricted-imports": ["error", { paths: [
-        { name: "axios", message: "Usa ApiClient (core/http/api-client.ts)." },
-        { name: "@angular/common/http", message: "El proyecto usa axios via ApiClient, no HttpClient." }
+        { name: "axios", message: "Usa el cliente de core/api.ts." },
+        { name: "@angular/common/http", message: "El proyecto usa axios (core/api.ts), no HttpClient." }
       ] }],
     },
   },

@@ -5,7 +5,18 @@
   "projects": {
     "procesos-front": {
       "projectType": "application",
-      "schematics": {},
+      "schematics": {
+        "@schematics/angular:component": {
+          "type": "component",
+          "style": "css"
+        },
+        "@schematics/angular:service": {
+          "type": "service"
+        },
+        "@schematics/angular:directive": {
+          "type": "directive"
+        }
+      },
       "root": "",
       "sourceRoot": "src",
       "prefix": "app",

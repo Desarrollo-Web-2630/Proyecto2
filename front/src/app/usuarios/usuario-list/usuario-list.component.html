@@ -1,0 +1,60 @@
+<div class="encabezado">
+  <h2>Usuarios de la empresa</h2>
+  @if (sesion.esAdmin()) {
+    <a class="boton" routerLink="nuevo">+ Invitar usuario</a>
+  }
+</div>
+
+@if (actionError()) {
+  <p class="error" role="alert">{{ actionError() }}</p>
+}
+
+@switch (status()) {
+  @case ('loading') {
+    <p>Cargando usuarios…</p>
+  }
+  @case ('error') {
+    <p class="error" role="alert">{{ message() }}</p>
+    <button type="button" (click)="load()">Reintentar</button>
+  }
+  @case ('success') {
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Nombre</th>
+          <th scope="col">Correo</th>
+          <th scope="col">Rol de acceso</th>
+          <th scope="col">Estado</th>
+          <th scope="col"><span class="nota">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (u of usuarios(); track u.id) {
+          <tr>
+            <td>{{ u.nombre }}</td>
+            <td>{{ u.correo }}</td>
+            <td>
+              @if (puedeModificar(u)) {
+                <select #rol [value]="u.rolAcceso" (change)="cambiarRol(u, rol.value)" [attr.aria-label]="'Rol de ' + u.nombre">
+                  @for (r of roles; track r) {
+                    <option [value]="r" [selected]="r === u.rolAcceso">{{ r }}</option>
+                  }
+                </select>
+              } @else {
+                {{ u.rolAcceso }}
+              }
+            </td>
+            <td>{{ u.activo ? 'Activo' : 'Inactivo' }}</td>
+            <td class="acciones-fila">
+              @if (puedeModificar(u) && u.activo) {
+                <button type="button" class="enlace peligro" (click)="desactivar(u)">Desactivar</button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5">No hay usuarios registrados.</td></tr>
+        }
+      </tbody>
+    </table>
+  }
+}
