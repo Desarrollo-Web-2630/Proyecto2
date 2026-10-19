@@ -3,7 +3,6 @@ import { RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
 import { Proceso } from '../../models/proceso.model';
 import { ProcesoService } from '../../services/proceso.service';
-import { SesionService } from '../../services/sesion.service';
 
 @Component({
   selector: 'app-proceso-list',
@@ -13,7 +12,6 @@ import { SesionService } from '../../services/sesion.service';
 })
 export class ProcesoListComponent implements OnInit {
   private readonly service = inject(ProcesoService);
-  protected readonly sesion = inject(SesionService);
 
   protected readonly status = signal<'loading' | 'success' | 'error'>('loading');
   protected readonly procesos = signal<Proceso[]>([]);

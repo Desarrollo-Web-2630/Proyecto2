@@ -27,9 +27,6 @@
             <td class="acciones-fila">
               <a [routerLink]="[p.id, 'pools']">Pools y lanes</a>
               <a [routerLink]="[p.id, 'actividades']">Actividades</a>
-              @if (sesion.esAdmin()) {
-                <a [routerLink]="[p.id, 'compartir']">Compartir</a>
-              }
             </td>
           </tr>
         } @empty {

@@ -17,7 +17,7 @@
   }
   @case ('success') {
     @if (soloLectura()) {
-      <p class="etiqueta">Proceso compartido: solo lectura</p>
+      <p class="etiqueta">Tu rol es de solo lectura</p>
     }
 
     <app-pool-diagrama [pools]="pools()" [lanes]="lanes()" [actividades]="actividades()" [roles]="roles()" />
@@ -43,10 +43,10 @@
               <td>{{ pool.nombre }}</td>
               <td>{{ textoTipo(pool.tipo) }}</td>
               <td class="acciones-fila">
-                @if (!soloLectura() && permisos.puede('editar')) {
+                @if (!soloLectura()) {
                   <button type="button" class="enlace" (click)="editarPool(pool)">Editar</button>
                 }
-                @if (!soloLectura() && permisos.puede('eliminar')) {
+                @if (puedeEliminar()) {
                   <button type="button" class="enlace peligro" (click)="eliminarPool(pool)">Eliminar</button>
                 }
               </td>
@@ -58,7 +58,7 @@
       </table>
     </div>
 
-    @if (!soloLectura() && (editandoPool() ? permisos.puede('editar') : permisos.puede('crear'))) {
+    @if (!soloLectura()) {
       <form [formGroup]="poolForm" (ngSubmit)="guardarPool()" novalidate>
         <h3>{{ editandoPool() ? 'Editar pool' : 'Nuevo pool' }}</h3>
         <label>
@@ -108,12 +108,12 @@
                 <td>{{ nombreRol(lane.rolProcesoId) }}</td>
                 <td>{{ cantidadActividades(lane.id) }}</td>
                 <td class="acciones-fila">
-                  @if (!soloLectura() && permisos.puede('editar')) {
+                  @if (!soloLectura()) {
                     <button type="button" class="enlace" [disabled]="primero" (click)="mover(i, -1)">Subir</button>
                     <button type="button" class="enlace" [disabled]="ultimo" (click)="mover(i, 1)">Bajar</button>
                     <button type="button" class="enlace" (click)="editarLane(lane)">Editar</button>
                   }
-                  @if (!soloLectura() && permisos.puede('eliminar')) {
+                  @if (puedeEliminar()) {
                     <button type="button" class="enlace peligro" (click)="eliminarLane(lane)">Eliminar</button>
                   }
                 </td>
@@ -125,7 +125,7 @@
         </table>
       </div>
 
-      @if (!soloLectura() && (editandoLane() ? permisos.puede('editar') : permisos.puede('crear'))) {
+      @if (!soloLectura()) {
         @if (roles().length === 0) {
           <p class="nota">
             La empresa no tiene roles de proceso. <a routerLink="/roles/nuevo">Crea uno</a> para poder agregar lanes.

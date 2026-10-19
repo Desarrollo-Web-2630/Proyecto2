@@ -9,7 +9,6 @@ import { Proceso } from '../../models/proceso.model';
 import { RolProceso } from '../../models/rol-proceso.model';
 import { ActividadService } from '../../services/actividad.service';
 import { LaneService } from '../../services/lane.service';
-import { PermisosPoolService } from '../../services/permisos-pool.service';
 import { PoolService } from '../../services/pool.service';
 import { ProcesoService } from '../../services/proceso.service';
 import { RolProcesoService } from '../../services/rol-proceso.service';
@@ -31,7 +30,6 @@ export class PoolListComponent implements OnInit {
   private readonly actividadService = inject(ActividadService);
   private readonly rolService = inject(RolProcesoService);
   private readonly sesion = inject(SesionService);
-  protected readonly permisos = inject(PermisosPoolService);
 
   readonly procesoId = input.required<string>();
 
@@ -56,8 +54,9 @@ export class PoolListComponent implements OnInit {
   protected readonly propietario = computed(() => this.pools().find(p => p.tipo === 'PROPIETARIO') ?? null);
   protected readonly externos = computed(() => this.pools().filter(p => p.tipo !== 'PROPIETARIO'));
 
-  // Un proceso compartido por otra empresa solo se consulta
-  protected readonly soloLectura = computed(() => this.proceso()?.empresaId !== this.sesion.usuario()?.empresaId);
+  // HU-22: solo lectura segun el rol de acceso del usuario
+  protected readonly soloLectura = computed(() => this.sesion.usuario()?.rolAcceso === 'LECTURA');
+  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
 
   protected readonly poolForm = this.fb.nonNullable.group({
     nombre: ['', [Validators.required, Validators.maxLength(120)]],
@@ -74,9 +73,6 @@ export class PoolListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.permisos.get().catch(() => {
-      // Si falla se usan los permisos por defecto
-    });
     Promise.all([this.procesoService.get(this.id), this.rolService.list()])
       .then(([proceso, roles]) => {
         this.proceso.set(proceso);

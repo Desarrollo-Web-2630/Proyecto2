@@ -30,12 +30,7 @@ export const routes: Routes = [
     children: [
       { path: 'procesos', loadChildren: () => import('./procesos/procesos.routes').then(m => m.PROCESOS_ROUTES) },
       { path: 'usuarios', loadChildren: () => import('./usuarios/usuarios.routes').then(m => m.USUARIOS_ROUTES) },
-      { path: 'roles', loadChildren: () => import('./roles/roles.routes').then(m => m.ROLES_ROUTES) },
-      {
-        path: 'permisos-pool',
-        title: 'Permisos de pools',
-        loadComponent: () => import('./pools/permisos-pool-form/permisos-pool-form.component').then(m => m.PermisosPoolFormComponent)
-      }
+      { path: 'roles', loadChildren: () => import('./roles/roles.routes').then(m => m.ROLES_ROUTES) }
     ]
   },
   { path: '**', redirectTo: '' }
