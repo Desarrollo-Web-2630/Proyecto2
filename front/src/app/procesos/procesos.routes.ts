@@ -7,16 +7,6 @@ export const PROCESOS_ROUTES: Routes = [
     loadComponent: () => import('./proceso-list/proceso-list.component').then(m => m.ProcesoListComponent)
   },
   {
-    path: 'compartidos',
-    title: 'Compartidos conmigo',
-    loadComponent: () => import('./proceso-compartido-list/proceso-compartido-list.component').then(m => m.ProcesoCompartidoListComponent)
-  },
-  {
-    path: ':procesoId/compartir',
-    title: 'Compartir proceso',
-    loadComponent: () => import('./proceso-compartir/proceso-compartir.component').then(m => m.ProcesoCompartirComponent)
-  },
-  {
     path: ':procesoId/pools',
     title: 'Pools y lanes',
     loadComponent: () => import('../pools/pool-list/pool-list.component').then(m => m.PoolListComponent)
