@@ -1,6 +1,9 @@
 <h2>{{ editing() ? 'Editar rol' : 'Nuevo rol' }}</h2>
 
-@if (loading()) {
+@if (!sesion.esAdmin()) {
+  <p class="error">Solo el administrador de la empresa puede crear o editar roles de proceso.</p>
+  <a routerLink="/roles">Volver</a>
+} @else if (loading()) {
   <p>Cargando…</p>
 } @else {
   <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -9,7 +12,7 @@
       <input formControlName="nombre" placeholder="Analista">
     </label>
     @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
-      <small class="error">@if (form.controls.nombre.hasError('required')) { El nombre es obligatorio } @else if (form.controls.nombre.hasError('maxlength')) { Máximo 100 caracteres }</small>
+      <small class="error">@if (form.controls.nombre.hasError('required')) { El nombre es obligatorio } @else if (form.controls.nombre.hasError('pattern')) { El nombre no puede ser solo espacios } @else if (form.controls.nombre.hasError('maxlength')) { Máximo 100 caracteres }</small>
     }
 
     <label>
@@ -17,7 +20,7 @@
       <input formControlName="descripcion">
     </label>
     @if (form.controls.descripcion.touched && form.controls.descripcion.invalid) {
-      <small class="error">@if (form.controls.descripcion.hasError('required')) { La descripción es obligatoria } @else if (form.controls.descripcion.hasError('maxlength')) { Máximo 500 caracteres }</small>
+      <small class="error">@if (form.controls.descripcion.hasError('required')) { La descripción es obligatoria } @else if (form.controls.descripcion.hasError('pattern')) { La descripción no puede ser solo espacios } @else if (form.controls.descripcion.hasError('maxlength')) { Máximo 500 caracteres }</small>
     }
 
     @if (message()) {

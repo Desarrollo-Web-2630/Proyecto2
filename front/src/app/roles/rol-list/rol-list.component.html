@@ -48,7 +48,11 @@
             <td class="acciones-fila">
               @if (sesion.esAdmin()) {
                 <a [routerLink]="[r.id, 'editar']">Editar</a>
-                <button type="button" class="enlace peligro" (click)="remove(r)">Eliminar</button>
+                @if (r.eliminable) {
+                  <button type="button" class="enlace peligro" (click)="remove(r)">Eliminar</button>
+                } @else {
+                  <span class="nota">En uso, no se puede eliminar</span>
+                }
               }
             </td>
           </tr>
