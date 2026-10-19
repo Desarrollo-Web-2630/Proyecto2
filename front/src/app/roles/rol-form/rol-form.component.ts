@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
 import { RolProceso, RolProcesoRequest } from '../../models/rol-proceso.model';
 import { RolProcesoService } from '../../services/rol-proceso.service';
+import { SesionService } from '../../services/sesion.service';
 
 // HU-17 (crear) y HU-18 (editar)
 @Component({
@@ -16,6 +17,7 @@ export class RolFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(RolProcesoService);
   private readonly router = inject(Router);
+  protected readonly sesion = inject(SesionService);
 
   // Parámetro :id de la ruta; no existe al crear
   readonly id = input<string>();
@@ -25,10 +27,11 @@ export class RolFormComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly message = signal('');
 
-  // Mismas reglas que RolProcesoRequestDTO
+  // Mismas reglas que RolProcesoRequestDTO. El patrón pide al menos un carácter
+  // que no sea espacio: required deja pasar "   " y el backend lo rechazaría
   protected readonly form = this.fb.nonNullable.group({
-    nombre: ['', [Validators.required, Validators.maxLength(100)]],
-    descripcion: ['', [Validators.required, Validators.maxLength(500)]]
+    nombre: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(100)]],
+    descripcion: ['', [Validators.required, Validators.pattern(/\S/), Validators.maxLength(500)]]
   });
 
   ngOnInit(): void {

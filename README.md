@@ -41,27 +41,32 @@ está nginx, que además reenvía `/api/` al backend (`nginx/default.conf.templa
 ## Estructura
 
 ```text
-src/app/
+front/src/app/
 ├── core/
-│   ├── api-client.ts  axios + X-Empresa-Id + errores
-│   ├── api-error.ts
-│   ├── auth.guard.ts  protege rutas (sesión / rol)
-│   ├── models/        interfaces = DTOs del backend
-│   └── services/      un servicio por recurso REST
-├── layout/            barra superior
-├── shared/            validadores
-└── features/
-    ├── auth/          login, activar-cuenta (HU-03)
-    ├── empresas/      registro-empresa (HU-01)
-    ├── usuarios/      gestion-usuarios (HU-02)
-    ├── procesos/      lista-procesos (base para HU-04..07)
-    └── pools/         HU-21, HU-22, HU-23, HU-24
+│   ├── api.ts         cliente axios (baseURL /api); todas las llamadas HTTP salen de aquí
+│   └── api-error.ts   mensajeDeError(): convierte el error del backend en un texto para el usuario
+├── models/            una interfaz por entidad, espejo de los DTO del backend
+├── services/          un servicio por recurso REST (ProcesoService, RolProcesoService, ...)
+├── layout/            barra superior y <router-outlet> de las pantallas con sesión
+├── inicio/            página pública
+├── auth/              login y activar-cuenta (HU-03)
+├── empresas/          empresa-form (HU-01)
+├── usuarios/          usuario-list y usuario-form (HU-02)
+├── procesos/          proceso-list, proceso-compartido-list y proceso-compartir
+├── actividades/       actividad-list y actividad-form (HU-08, HU-09, HU-10)
+├── roles/             rol-list y rol-form (HU-17, HU-18, HU-19, HU-20)
+└── pools/             pool-list, pool-diagrama y permisos-pool-form (HU-21 a HU-24)
 ```
+
+Cada módulo tiene su archivo de rutas (`roles/roles.routes.ts`) y `app.routes.ts` lo carga con `loadChildren`.
 
 ### Cómo agregar una historia
 
-1. Modelo en `core/models/`.
-2. Servicio en `core/services/` que use `ApiClient` (`this.api.get<T>(...)`).
-3. Componente standalone en `features/<modulo>/`, con `signal()` para estado y `async/await` + `try/catch`
-   usando `mensajeDeError(e)` para mostrar el error del backend.
-4. Ruta lazy en `app.routes.ts`.
+1. Modelo en `models/`: una interfaz por entidad con los mismos campos del DTO del backend.
+2. Servicio en `services/` que use `api` de `core/api.ts` (`api.get<T>(...)`). No se usa `fetch` ni
+   `HttpClient`; eslint los rechaza, igual que `any`.
+3. Componentes standalone en `<modulo>/<nombre>-list/` y `<modulo>/<nombre>-form/`, con `signal()` para el
+   estado y `mensajeDeError(e)` para mostrar el error que devuelve el backend.
+4. Rutas del módulo en `<modulo>/<modulo>.routes.ts` y su entrada en `app.routes.ts`.
+5. Si se quiere probar sin backend, agregar los endpoints en `mock/server.mjs`.
+6. Antes del PR: `npm run lint` y `npm run build`.
