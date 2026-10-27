@@ -9,3 +9,16 @@ export interface Proceso {
   estado: EstadoProceso;
   empresaId: number;
 }
+
+// Espejo de ProcesoDTO
+export type ProcesoRequest = Pick<Proceso, 'nombre' | 'descripcion' | 'categoria'>;
+
+export interface ProcesoFiltro {
+  nombre?: string;
+  estado?: EstadoProceso | '';
+  categoria?: string;
+  incluirInactivos?: boolean;
+  page?: number;
+  size?: number;
+}
+
