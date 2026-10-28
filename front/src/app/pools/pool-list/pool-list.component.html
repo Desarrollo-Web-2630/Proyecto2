@@ -20,7 +20,15 @@
       <p class="etiqueta">Tu rol es de solo lectura</p>
     }
 
-    <app-pool-diagrama [pools]="pools()" [lanes]="lanes()" [actividades]="actividades()" [roles]="roles()" />
+    <app-pool-diagrama
+      [pools]="pools()"
+      [lanes]="lanes()"
+      [actividades]="actividades()"
+      [roles]="roles()"
+      [editable]="!soloLectura()"
+      (moverActividad)="moverActividadDiagrama($event)"
+      (reordenarLanes)="reordenarLanesDiagrama($event)"
+    />
 
     @if (actionError()) {
       <p class="error" role="alert">{{ actionError() }}</p>

@@ -1,60 +1,60 @@
-import { Injectable } from '@angular/core';
-import { api } from '../core/api';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
 import { Page } from '../models/page.model';
 import { Proceso, ProcesoFiltro, ProcesoRequest } from '../models/proceso.model';
 
 @Injectable({ providedIn: 'root' })
 export class ProcesoService {
+  private readonly http = inject(HttpClient);
   private readonly url = '/v1/procesos';
 
-  list(incluirInactivos = false): Promise<Proceso[]> {
-    return api.get<Proceso[]>(this.url, { params: { incluirInactivos } }).then(r => r.data);
+  list(incluirInactivos = false): Observable<Proceso[]> {
+    return this.http.get<Proceso[]>(this.url, { params: { incluirInactivos } });
   }
 
-  buscar(filtro: ProcesoFiltro): Promise<Page<Proceso>> {
-    const params: Record<string, string | number | boolean> = {
-      incluirInactivos: filtro.incluirInactivos ?? false,
-      page: filtro.page ?? 0,
-      size: filtro.size ?? 10
-    };
+  buscar(filtro: ProcesoFiltro): Observable<Page<Proceso>> {
+    let params = new HttpParams()
+      .set('incluirInactivos', filtro.incluirInactivos ?? false)
+      .set('page', filtro.page ?? 0)
+      .set('size', filtro.size ?? 10);
     if (filtro.nombre) {
-      params['nombre'] = filtro.nombre;
+      params = params.set('nombre', filtro.nombre);
     }
     if (filtro.estado) {
-      params['estado'] = filtro.estado;
+      params = params.set('estado', filtro.estado);
     }
     if (filtro.categoria) {
-      params['categoria'] = filtro.categoria;
+      params = params.set('categoria', filtro.categoria);
     }
-    return api.get<Page<Proceso>>(`${this.url}/buscar`, { params }).then(r => r.data);
+    return this.http.get<Page<Proceso>>(`${this.url}/buscar`, { params });
   }
 
-  get(id: number): Promise<Proceso> {
-    return api.get<Proceso>(`${this.url}/${id}`).then(r => r.data);
+  get(id: number): Observable<Proceso> {
+    return this.http.get<Proceso>(`${this.url}/${id}`);
   }
 
-  create(proceso: ProcesoRequest): Promise<Proceso> {
-    return api.post<Proceso>(this.url, proceso).then(r => r.data);
+  create(proceso: ProcesoRequest): Observable<Proceso> {
+    return this.http.post<Proceso>(this.url, proceso);
   }
 
-  update(id: number, proceso: ProcesoRequest): Promise<Proceso> {
-    return api.put<Proceso>(`${this.url}/${id}`, proceso).then(r => r.data);
+  update(id: number, proceso: ProcesoRequest): Observable<Proceso> {
+    return this.http.put<Proceso>(`${this.url}/${id}`, proceso);
   }
 
-  publicar(id: number): Promise<Proceso> {
-    return api.post<Proceso>(`${this.url}/${id}/publicar`).then(r => r.data);
+  publicar(id: number): Observable<Proceso> {
+    return this.http.post<Proceso>(`${this.url}/${id}/publicar`, null);
   }
 
-  inactivar(id: number): Promise<Proceso> {
-    return api.post<Proceso>(`${this.url}/${id}/inactivar`).then(r => r.data);
+  inactivar(id: number): Observable<Proceso> {
+    return this.http.post<Proceso>(`${this.url}/${id}/inactivar`, null);
   }
 
-  reactivar(id: number): Promise<Proceso> {
-    return api.post<Proceso>(`${this.url}/${id}/reactivar`).then(r => r.data);
+  reactivar(id: number): Observable<Proceso> {
+    return this.http.post<Proceso>(`${this.url}/${id}/reactivar`, null);
   }
 
-  delete(id: number): Promise<void> {
-    return api.delete(`${this.url}/${id}`).then(() => undefined);
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/${id}`);
   }
 }
-

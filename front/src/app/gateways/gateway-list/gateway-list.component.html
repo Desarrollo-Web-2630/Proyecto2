@@ -1,0 +1,75 @@
+<div class="encabezado">
+  <div>
+    <a routerLink="/procesos">← Procesos</a>
+    <h2>{{ proceso()?.nombre }} · gateways</h2>
+  </div>
+</div>
+
+@switch (status()) {
+  @case ('loading') {
+    <p>Cargando gateways…</p>
+  }
+  @case ('error') {
+    <p class="error" role="alert">{{ message() }}</p>
+  }
+  @case ('success') {
+    @if (actionError()) {
+      <p class="error" role="alert">{{ actionError() }}</p>
+    }
+
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Nombre</th>
+          <th scope="col">Tipo</th>
+          <th scope="col"><span class="nota">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (g of gateways(); track g.id) {
+          <tr>
+            <td>{{ g.nombre }}</td>
+            <td>{{ textoTipo(g.tipo) }}</td>
+            <td class="acciones-fila">
+              @if (puedeEditar()) {
+                <button type="button" class="enlace" (click)="editar(g)">Editar</button>
+              }
+              @if (puedeEliminar()) {
+                <button type="button" class="enlace peligro" (click)="eliminar(g)">Eliminar</button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="3">Este proceso aún no tiene gateways.</td></tr>
+        }
+      </tbody>
+    </table>
+
+    @if (puedeEditar()) {
+      <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+        <h3>{{ editando() ? 'Editar gateway' : 'Nuevo gateway' }}</h3>
+        <label>
+          Nombre
+          <input formControlName="nombre">
+        </label>
+        @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+          <small class="error">@if (form.controls.nombre.hasError('required')) { El nombre es obligatorio } @else { Máximo 255 caracteres }</small>
+        }
+        <label>
+          Tipo
+          <select formControlName="tipo">
+            @for (t of tipos; track t.valor) {
+              <option [value]="t.valor">{{ t.texto }}</option>
+            }
+          </select>
+        </label>
+        <div class="acciones">
+          <button type="submit">{{ editando() ? 'Guardar' : 'Crear gateway' }}</button>
+          @if (editando()) {
+            <button type="button" class="enlace" (click)="cancelar()">Cancelar</button>
+          }
+        </div>
+      </form>
+    }
+  }
+}

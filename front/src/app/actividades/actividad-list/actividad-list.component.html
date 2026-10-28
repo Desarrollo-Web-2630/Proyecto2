@@ -28,7 +28,15 @@
       </p>
     }
 
-    <app-pool-diagrama [pools]="pools()" [lanes]="lanes()" [actividades]="actividades()" [roles]="roles()" />
+    <app-pool-diagrama
+      [pools]="pools()"
+      [lanes]="lanes()"
+      [actividades]="actividades()"
+      [roles]="roles()"
+      [editable]="puedeEditar()"
+      (moverActividad)="moverActividadDiagrama($event)"
+      (reordenarLanes)="reordenarLanesDiagrama($event)"
+    />
 
     <table>
       <thead>
@@ -36,17 +44,15 @@
           <th scope="col">Nombre</th>
           <th scope="col">Tipo</th>
           <th scope="col">Lane</th>
-          <th scope="col">Posición (X, Y)</th>
           <th scope="col"><span class="nota">Acciones</span></th>
         </tr>
       </thead>
       <tbody>
-        @for (a of actividades(); track a.id) {
+        @for (a of filas(); track a.id) {
           <tr>
             <td>{{ a.nombre }}</td>
             <td>{{ a.tipoActividad }}</td>
             <td>{{ nombreLane(a.laneId) }}</td>
-            <td>{{ a.posicionX }}, {{ a.posicionY }}</td>
             <td class="acciones-fila">
               @if (puedeEditar()) {
                 <a [routerLink]="[a.id, 'editar']">Editar</a>
@@ -57,9 +63,17 @@
             </td>
           </tr>
         } @empty {
-          <tr><td colspan="5">Este proceso aún no tiene actividades.</td></tr>
+          <tr><td colspan="4">Este proceso aún no tiene actividades.</td></tr>
         }
       </tbody>
     </table>
+
+    @if (totalPaginas() > 1) {
+      <div class="acciones">
+        <button type="button" class="secundario" [disabled]="pagina() === 0" (click)="irAPagina(pagina() - 1)">Anterior</button>
+        <span>Página {{ pagina() + 1 }} de {{ totalPaginas() }}</span>
+        <button type="button" class="secundario" [disabled]="pagina() + 1 >= totalPaginas()" (click)="irAPagina(pagina() + 1)">Siguiente</button>
+      </div>
+    }
   }
 }

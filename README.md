@@ -43,19 +43,22 @@ está nginx, que además reenvía `/api/` al backend (`nginx/default.conf.templa
 ```text
 front/src/app/
 ├── core/
-│   ├── api.ts         cliente axios (baseURL /api); todas las llamadas HTTP salen de aquí
+│   ├── api.interceptor.ts  antepone /api a cada petición y agrega el encabezado X-Empresa-Id
 │   └── api-error.ts   mensajeDeError(): convierte el error del backend en un texto para el usuario
 ├── models/            una interfaz por entidad, espejo de los DTO del backend
-├── services/          un servicio por recurso REST (ProcesoService, RolProcesoService, ...)
+├── services/          un servicio por recurso REST con HttpClient; devuelven Observable
 ├── layout/            barra superior y <router-outlet> de las pantallas con sesión
 ├── inicio/            página pública
 ├── auth/              login y activar-cuenta (HU-03)
 ├── empresas/          empresa-form (HU-01)
 ├── usuarios/          usuario-list y usuario-form (HU-02)
-├── procesos/          proceso-list, proceso-compartido-list y proceso-compartir
+├── procesos/          proceso-list y proceso-form (HU-04 a HU-07)
 ├── actividades/       actividad-list y actividad-form (HU-08, HU-09, HU-10)
+├── gateways/          gateway-list (HU-14)
+├── arcos/             arco-list (HU-11, HU-12)
+├── mensajes/          mensaje-list con clave de correlación (HU-25 a HU-28)
 ├── roles/             rol-list y rol-form (HU-17, HU-18, HU-19, HU-20)
-└── pools/             pool-list, pool-diagrama y permisos-pool-form (HU-21 a HU-24)
+└── pools/             pool-list y pool-diagrama con drag and drop (HU-21 y HU-22)
 ```
 
 Cada módulo tiene su archivo de rutas (`roles/roles.routes.ts`) y `app.routes.ts` lo carga con `loadChildren`.
@@ -63,10 +66,10 @@ Cada módulo tiene su archivo de rutas (`roles/roles.routes.ts`) y `app.routes.t
 ### Cómo agregar una historia
 
 1. Modelo en `models/`: una interfaz por entidad con los mismos campos del DTO del backend.
-2. Servicio en `services/` que use `api` de `core/api.ts` (`api.get<T>(...)`). No se usa `fetch` ni
-   `HttpClient`; eslint los rechaza, igual que `any`.
+2. Servicio en `services/` que inyecte `HttpClient` y devuelva `Observable<T>`. No se usa `fetch` ni
+   `axios`; eslint los rechaza, igual que `any`.
 3. Componentes standalone en `<modulo>/<nombre>-list/` y `<modulo>/<nombre>-form/`, con `signal()` para el
-   estado y `mensajeDeError(e)` para mostrar el error que devuelve el backend.
+   estado, `subscribe()` con `takeUntilDestroyed` y `mensajeDeError(e)` para mostrar el error del backend.
 4. Rutas del módulo en `<modulo>/<modulo>.routes.ts` y su entrada en `app.routes.ts`.
 5. Si se quiere probar sin backend, agregar los endpoints en `mock/server.mjs`.
 6. Antes del PR: `npm run lint` y `npm run build`.

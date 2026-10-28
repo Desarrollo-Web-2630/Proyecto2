@@ -9,7 +9,13 @@
       <input formControlName="nombre">
     </label>
     @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
-      <small class="error">@if (form.controls.nombre.hasError('required')) { El nombre es obligatorio } @else if (form.controls.nombre.hasError('maxlength')) { Máximo 255 caracteres }</small>
+      <small class="error">
+        @if (form.controls.nombre.hasError('required') || form.controls.nombre.hasError('pattern')) {
+          El nombre es obligatorio
+        } @else if (form.controls.nombre.hasError('maxlength')) {
+          Máximo 255 caracteres
+        }
+      </small>
     }
 
     <label>
@@ -34,21 +40,10 @@
       <small class="error">Selecciona la lane de la actividad</small>
     }
 
-    <label>
-      Posición X
-      <input type="number" formControlName="posicionX" min="0">
-    </label>
-    @if (form.controls.posicionX.touched && form.controls.posicionX.invalid) {
-      <small class="error">@if (form.controls.posicionX.hasError('required')) { La posición X es obligatoria } @else if (form.controls.posicionX.hasError('min')) { No puede ser negativa }</small>
-    }
-
-    <label>
-      Posición Y
-      <input type="number" formControlName="posicionY" min="0">
-    </label>
-    @if (form.controls.posicionY.touched && form.controls.posicionY.invalid) {
-      <small class="error">@if (form.controls.posicionY.hasError('required')) { La posición Y es obligatoria } @else if (form.controls.posicionY.hasError('min')) { No puede ser negativa }</small>
-    }
+    <small class="nota">
+      La posición en el diagrama se asigna automáticamente y puedes ajustarla arrastrando la
+      actividad en el lienzo.
+    </small>
 
     @if (message()) {
       <p class="error" role="alert">{{ message() }}</p>

@@ -9,3 +9,16 @@ export interface Arco {
   destinoNombre: string | null;
   procesoId: number | null;
 }
+
+// Espejo de ArcoDTO
+export interface ArcoRequest {
+  nombre: string | null;
+  condicion: string | null;
+  origenId: number;
+  destinoId: number;
+}
+
+export interface ArcoEliminado {
+  mensaje: string;
+  advertencia?: string;
+}

@@ -1,0 +1,104 @@
+<div class="encabezado">
+  <div>
+    <a routerLink="/procesos">← Procesos</a>
+    <h2>{{ proceso()?.nombre }} · arcos</h2>
+  </div>
+</div>
+
+@switch (status()) {
+  @case ('loading') {
+    <p>Cargando arcos…</p>
+  }
+  @case ('error') {
+    <p class="error" role="alert">{{ message() }}</p>
+  }
+  @case ('success') {
+    @if (actionError()) {
+      <p class="error" role="alert">{{ actionError() }}</p>
+    }
+    @if (aviso()) {
+      <p class="nota" role="status">{{ aviso() }}</p>
+    }
+
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Nombre</th>
+          <th scope="col">Origen</th>
+          <th scope="col">Destino</th>
+          <th scope="col">Condición</th>
+          <th scope="col"><span class="nota">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (a of arcos(); track a.id) {
+          <tr>
+            <td>{{ a.nombre }}</td>
+            <td>{{ a.origenNombre }}</td>
+            <td>{{ a.destinoNombre }}</td>
+            <td>{{ a.condicion }}</td>
+            <td class="acciones-fila">
+              @if (puedeEditar()) {
+                <button type="button" class="enlace" (click)="editar(a)">Editar</button>
+              }
+              @if (puedeEliminar()) {
+                <button type="button" class="enlace peligro" (click)="eliminar(a)">Eliminar</button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5">Este proceso aún no tiene arcos.</td></tr>
+        }
+      </tbody>
+    </table>
+
+    @if (puedeEditar()) {
+      @if (elementos().length < 2) {
+        <p class="nota">Para crear un arco se necesitan al menos dos elementos (actividades o gateways).</p>
+      } @else {
+        <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+          <h3>{{ editando() ? 'Editar arco' : 'Nuevo arco' }}</h3>
+          <label>
+            Origen
+            <select formControlName="origenId">
+              <option [ngValue]="null" disabled>Selecciona el origen</option>
+              @for (e of elementos(); track e.id) {
+                <option [ngValue]="e.id">{{ e.tipo }}: {{ e.nombre }}</option>
+              }
+            </select>
+          </label>
+          @if (form.controls.origenId.touched && form.controls.origenId.invalid) {
+            <small class="error">Selecciona el origen</small>
+          }
+          <label>
+            Destino
+            <select formControlName="destinoId">
+              <option [ngValue]="null" disabled>Selecciona el destino</option>
+              @for (e of elementos(); track e.id) {
+                <option [ngValue]="e.id">{{ e.tipo }}: {{ e.nombre }}</option>
+              }
+            </select>
+          </label>
+          @if (form.controls.destinoId.touched && form.controls.destinoId.invalid) {
+            <small class="error">Selecciona el destino</small>
+          }
+          <label>
+            Nombre (opcional)
+            <input formControlName="nombre">
+          </label>
+          <label>
+            Condición (opcional, por ejemplo Sí / No)
+            <input formControlName="condicion">
+          </label>
+          <small class="nota">Un arco no puede cruzar de un pool a otro: para eso se usan los mensajes.</small>
+          <div class="acciones">
+            <button type="submit">{{ editando() ? 'Guardar' : 'Crear arco' }}</button>
+            @if (editando()) {
+              <button type="button" class="enlace" (click)="cancelar()">Cancelar</button>
+            }
+          </div>
+        </form>
+      }
+    }
+  }
+}

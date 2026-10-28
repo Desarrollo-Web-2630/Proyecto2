@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
@@ -14,6 +15,7 @@ import { AuthService } from '../../services/auth.service';
 export class ActivarCuentaComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
 
   // ?token= del enlace del correo
   readonly token = input<string>();
@@ -54,10 +56,13 @@ export class ActivarCuentaComponent implements OnInit {
     this.saving.set(true);
     this.message.set('');
     this.authService.activarCuenta({ token: datos.token.trim(), nuevaPassword: datos.nuevaPassword })
-      .then(respuesta => this.activada.set(respuesta.mensaje))
-      .catch(err => {
-        this.message.set(mensajeDeError(err, 'No fue posible activar la cuenta'));
-        this.saving.set(false);
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: respuesta => this.activada.set(respuesta.mensaje),
+        error: err => {
+          this.message.set(mensajeDeError(err, 'No fue posible activar la cuenta'));
+          this.saving.set(false);
+        }
       });
   }
 
@@ -67,7 +72,10 @@ export class ActivarCuentaComponent implements OnInit {
       return;
     }
     this.authService.reenviarVerificacion(this.formReenvio.getRawValue().correo)
-      .then(respuesta => this.reenvio.set(respuesta.mensaje))
-      .catch(err => this.reenvio.set(mensajeDeError(err, 'No fue posible reenviar el enlace')));
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: respuesta => this.reenvio.set(respuesta.mensaje),
+        error: err => this.reenvio.set(mensajeDeError(err, 'No fue posible reenviar el enlace'))
+      });
   }
 }

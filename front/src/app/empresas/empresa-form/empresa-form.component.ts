@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
@@ -15,6 +16,7 @@ import { EmpresaService } from '../../services/empresa.service';
 export class EmpresaFormComponent {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(EmpresaService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly saving = signal(false);
   protected readonly message = signal('');
@@ -41,11 +43,14 @@ export class EmpresaFormComponent {
     this.saving.set(true);
     this.message.set('');
     this.service.create(empresa)
-      .then(creada => this.registrada.set(creada))
-      .catch(err => {
-        // Por ejemplo: el NIT ya está registrado
-        this.message.set(mensajeDeError(err, 'No fue posible registrar la empresa'));
-        this.saving.set(false);
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: creada => this.registrada.set(creada),
+        error: err => {
+          // Por ejemplo: el NIT ya está registrado
+          this.message.set(mensajeDeError(err, 'No fue posible registrar la empresa'));
+          this.saving.set(false);
+        }
       });
   }
 }

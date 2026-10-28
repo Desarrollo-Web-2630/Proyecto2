@@ -1,0 +1,120 @@
+<div class="encabezado">
+  <div>
+    <a routerLink="/procesos">← Procesos</a>
+    <h2>{{ proceso()?.nombre }} · mensajes</h2>
+  </div>
+</div>
+
+@switch (status()) {
+  @case ('loading') {
+    <p>Cargando mensajes…</p>
+  }
+  @case ('error') {
+    <p class="error" role="alert">{{ message() }}</p>
+  }
+  @case ('success') {
+    @if (actionError()) {
+      <p class="error" role="alert">{{ actionError() }}</p>
+    }
+
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Mensaje</th>
+          <th scope="col">Correlación</th>
+          <th scope="col">Envía (throw)</th>
+          <th scope="col">Recibe (catch)</th>
+          <th scope="col">Actividad de envío</th>
+          <th scope="col"><span class="nota">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (m of mensajes(); track m.id) {
+          <tr>
+            <td>{{ m.nombre }}</td>
+            <td>{{ m.claveCorrelacion }}</td>
+            <td>{{ nombrePool(m.poolOrigenId) }}</td>
+            <td>{{ nombrePool(m.poolDestinoId) }}</td>
+            <td>{{ nombreActividad(m.elementoOrigenId) }}</td>
+            <td class="acciones-fila">
+              @if (puedeEditar()) {
+                <button type="button" class="enlace" (click)="editar(m)">Editar</button>
+              }
+              @if (puedeEliminar()) {
+                <button type="button" class="enlace peligro" (click)="eliminar(m)">Eliminar</button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6">Este proceso aún no tiene mensajes.</td></tr>
+        }
+      </tbody>
+    </table>
+
+    @if (puedeEditar()) {
+      @if (pools().length < 2) {
+        <p class="nota">
+          Un mensaje conecta dos pools. Crea al menos dos en
+          <a [routerLink]="['/procesos', procesoId(), 'pools']">Pools y lanes</a>.
+        </p>
+      } @else {
+        <form [formGroup]="form" (ngSubmit)="guardar()" novalidate>
+          <h3>{{ editando() ? 'Editar mensaje' : 'Nuevo mensaje' }}</h3>
+          <label>
+            Nombre
+            <input formControlName="nombre">
+          </label>
+          @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+            <small class="error">El nombre es obligatorio (máximo 255 caracteres)</small>
+          }
+          <label>
+            Clave de correlación (a qué caso corresponde, por ejemplo n.º de solicitud)
+            <input formControlName="claveCorrelacion">
+          </label>
+          @if (form.controls.claveCorrelacion.touched && form.controls.claveCorrelacion.invalid) {
+            <small class="error">La clave de correlación es obligatoria (máximo 255 caracteres)</small>
+          }
+          <label>
+            Pool que envía
+            <select formControlName="poolOrigenId">
+              <option [ngValue]="null" disabled>Selecciona un pool</option>
+              @for (p of pools(); track p.id) {
+                <option [ngValue]="p.id">{{ p.nombre }}</option>
+              }
+            </select>
+          </label>
+          @if (form.controls.poolOrigenId.touched && form.controls.poolOrigenId.invalid) {
+            <small class="error">Selecciona el pool que envía</small>
+          }
+          <label>
+            Pool que recibe
+            <select formControlName="poolDestinoId">
+              <option [ngValue]="null" disabled>Selecciona un pool</option>
+              @for (p of pools(); track p.id) {
+                <option [ngValue]="p.id">{{ p.nombre }}</option>
+              }
+            </select>
+          </label>
+          @if (form.controls.poolDestinoId.touched && form.controls.poolDestinoId.invalid) {
+            <small class="error">Selecciona el pool que recibe</small>
+          }
+          <label>
+            Actividad que envía (opcional)
+            <select formControlName="elementoOrigenId">
+              <option [ngValue]="null">Ninguna</option>
+              @for (a of actividades(); track a.id) {
+                <option [ngValue]="a.id">{{ a.nombre }}</option>
+              }
+            </select>
+          </label>
+          <div class="acciones">
+            <button type="submit">{{ editando() ? 'Guardar' : 'Crear mensaje' }}</button>
+            @if (editando()) {
+              <button type="button" class="enlace" (click)="cancelar()">Cancelar</button>
+            }
+          </div>
+        </form>
+      }
+    }
+  }
+}

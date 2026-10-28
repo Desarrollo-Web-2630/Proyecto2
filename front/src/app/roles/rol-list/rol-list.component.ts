@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
@@ -15,6 +16,7 @@ import { SesionService } from '../../services/sesion.service';
 })
 export class RolListComponent implements OnInit {
   private readonly service = inject(RolProcesoService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly sesion = inject(SesionService);
 
   private readonly tamano = 10;
@@ -34,14 +36,17 @@ export class RolListComponent implements OnInit {
   load(): void {
     this.status.set('loading');
     this.service.buscar(this.nombre.trim(), this.pagina(), this.tamano)
-      .then(page => {
-        this.roles.set(page.content);
-        this.totalPaginas.set(page.totalPages);
-        this.status.set('success');
-      })
-      .catch(err => {
-        this.message.set(mensajeDeError(err, 'No fue posible cargar los roles'));
-        this.status.set('error');
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: page => {
+          this.roles.set(page.content);
+          this.totalPaginas.set(page.totalPages);
+          this.status.set('success');
+        },
+        error: err => {
+          this.message.set(mensajeDeError(err, 'No fue posible cargar los roles'));
+          this.status.set('error');
+        }
       });
   }
 
@@ -67,7 +72,10 @@ export class RolListComponent implements OnInit {
       return;
     }
     this.service.delete(rol.id)
-      .then(() => this.load())
-      .catch(err => this.actionError.set(mensajeDeError(err, 'No fue posible eliminar el rol')));
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.load(),
+        error: err => this.actionError.set(mensajeDeError(err, 'No fue posible eliminar el rol'))
+      });
   }
 }

@@ -1,26 +1,29 @@
-import { Injectable } from '@angular/core';
-import { api } from '../core/api';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
 import { Pool, PoolRequest } from '../models/pool.model';
 
 @Injectable({ providedIn: 'root' })
 export class PoolService {
+  private readonly http = inject(HttpClient);
+
   private url(procesoId: number): string {
     return `/v1/procesos/${procesoId}/pools`;
   }
 
-  list(procesoId: number): Promise<Pool[]> {
-    return api.get<Pool[]>(this.url(procesoId)).then(r => r.data);
+  list(procesoId: number): Observable<Pool[]> {
+    return this.http.get<Pool[]>(this.url(procesoId));
   }
 
-  create(procesoId: number, pool: PoolRequest): Promise<Pool> {
-    return api.post<Pool>(this.url(procesoId), pool).then(r => r.data);
+  create(procesoId: number, pool: PoolRequest): Observable<Pool> {
+    return this.http.post<Pool>(this.url(procesoId), pool);
   }
 
-  update(procesoId: number, id: number, pool: PoolRequest): Promise<Pool> {
-    return api.put<Pool>(`${this.url(procesoId)}/${id}`, pool).then(r => r.data);
+  update(procesoId: number, id: number, pool: PoolRequest): Observable<Pool> {
+    return this.http.put<Pool>(`${this.url(procesoId)}/${id}`, pool);
   }
 
-  delete(procesoId: number, id: number): Promise<void> {
-    return api.delete(`${this.url(procesoId)}/${id}`).then(() => undefined);
+  delete(procesoId: number, id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url(procesoId)}/${id}`);
   }
 }
