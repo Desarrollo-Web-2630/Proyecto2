@@ -1,0 +1,93 @@
+<div class="encabezado">
+  <h2>Procesos de mi empresa</h2>
+  @if (puedeEditar()) {
+    <a class="boton" routerLink="nuevo">+ Nuevo proceso</a>
+  }
+</div>
+
+<form class="acciones" (ngSubmit)="buscar()">
+  <input name="nombre" [(ngModel)]="nombre" placeholder="Buscar por nombre" aria-label="Buscar por nombre">
+  <input name="categoria" [(ngModel)]="categoria" placeholder="Categoría" aria-label="Filtrar por categoría">
+  <select name="estado" [(ngModel)]="estado" aria-label="Filtrar por estado">
+    <option value="">Todos los estados</option>
+    @for (e of estados; track e) {
+      <option [value]="e">{{ e }}</option>
+    }
+  </select>
+  <label class="check">
+    <input type="checkbox" name="incluirInactivos" [(ngModel)]="incluirInactivos">
+    Incluir inactivos
+  </label>
+  <div class="acciones">
+    <button type="submit">Buscar</button>
+    @if (nombre || categoria || estado || incluirInactivos) {
+      <button type="button" class="secundario" (click)="limpiar()">Limpiar</button>
+    }
+  </div>
+</form>
+
+@if (actionError()) {
+  <p class="error" role="alert">{{ actionError() }}</p>
+}
+
+@switch (status()) {
+  @case ('loading') {
+    <p>Cargando procesos…</p>
+  }
+  @case ('error') {
+    <p class="error" role="alert">{{ message() }}</p>
+    <button type="button" (click)="load()">Reintentar</button>
+  }
+  @case ('success') {
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Nombre</th>
+          <th scope="col">Descripción</th>
+          <th scope="col">Categoría</th>
+          <th scope="col">Estado</th>
+          <th scope="col"><span class="nota">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of procesos(); track p.id) {
+          <tr>
+            <td>{{ p.nombre }}</td>
+            <td>{{ p.descripcion }}</td>
+            <td>{{ p.categoria }}</td>
+            <td><span class="etiqueta">{{ p.estado }}</span></td>
+            <td class="acciones-fila">
+              <a [routerLink]="[p.id, 'pools']">Pools y lanes</a>
+              <a [routerLink]="[p.id, 'actividades']">Actividades</a>
+              @if (puedeEditar()) {
+                <a [routerLink]="[p.id, 'editar']">Editar</a>
+                @if (p.estado === 'BORRADOR') {
+                  <button type="button" class="enlace" (click)="publicar(p)">Publicar</button>
+                }
+              }
+              @if (puedeEliminar()) {
+                @if (p.estado !== 'INACTIVO') {
+                  <button type="button" class="enlace" (click)="inactivar(p)">Inactivar</button>
+                } @else {
+                  <button type="button" class="enlace" (click)="reactivar(p)">Reactivar</button>
+                }
+                <button type="button" class="enlace peligro" (click)="remove(p)">Eliminar</button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5">No hay procesos registrados.</td></tr>
+        }
+      </tbody>
+    </table>
+
+    @if (totalPaginas() > 1) {
+      <div class="acciones">
+        <button type="button" class="secundario" [disabled]="pagina() === 0" (click)="irAPagina(pagina() - 1)">Anterior</button>
+        <span>Página {{ pagina() + 1 }} de {{ totalPaginas() }}</span>
+        <button type="button" class="secundario" [disabled]="pagina() + 1 >= totalPaginas()" (click)="irAPagina(pagina() + 1)">Siguiente</button>
+      </div>
+    }
+  }
+}
+

@@ -1,0 +1,29 @@
+<header>
+  <h1>Procesos</h1>
+  <nav aria-label="Acceso">
+    @if (sesion.usuario()) {
+      <a routerLink="/procesos">Ir a mis procesos</a>
+    } @else {
+      <a routerLink="/login">Iniciar sesión</a>
+      <a routerLink="/registro">Registrar empresa</a>
+    }
+  </nav>
+</header>
+
+<main>
+  <section class="tarjeta">
+    <h2>Editor y visualizador de procesos</h2>
+    <p>
+      Modela los procesos de tu empresa con actividades, arcos, gateways, pools, lanes y mensajes.
+      El sistema documenta los procesos; no los ejecuta.
+    </p>
+    <ul>
+      <li>Cada empresa tiene su propio espacio, con sus usuarios y procesos.</li>
+      <li>Las actividades se asignan a roles de proceso (lanes), no a personas.</li>
+    </ul>
+    <div class="acciones">
+      <a class="boton" routerLink="/registro">Registrar mi empresa</a>
+      <a routerLink="/login">Ya tengo cuenta</a>
+    </div>
+  </section>
+</main>

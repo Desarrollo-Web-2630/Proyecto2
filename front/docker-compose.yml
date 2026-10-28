@@ -1,5 +1,4 @@
-# Levanta front + backend. BACKEND_PATH apunta a la carpeta del repo del backend
-# (la que tiene el pom.xml) y esa carpeta necesita su propio Dockerfile.
+# BACKEND_PATH es la carpeta del backend (con su propio Dockerfile)
 services:
   backend:
     build: ${BACKEND_PATH:-../Proyecto1/thymeleaf}

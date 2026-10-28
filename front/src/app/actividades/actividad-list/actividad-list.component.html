@@ -1,0 +1,65 @@
+<div class="encabezado">
+  <div>
+    <a routerLink="/procesos">← Procesos</a>
+    <h2>{{ proceso()?.nombre }} · actividades</h2>
+  </div>
+  @if (puedeEditar() && lanes().length > 0) {
+    <a class="boton" routerLink="nueva">+ Nueva actividad</a>
+  }
+</div>
+
+@if (actionError()) {
+  <p class="error" role="alert">{{ actionError() }}</p>
+}
+
+@switch (status()) {
+  @case ('loading') {
+    <p>Cargando actividades…</p>
+  }
+  @case ('error') {
+    <p class="error" role="alert">{{ message() }}</p>
+    <button type="button" (click)="load()">Reintentar</button>
+  }
+  @case ('success') {
+    @if (lanes().length === 0) {
+      <p class="nota">
+        Una actividad siempre pertenece a una lane. Primero crea el pool de la empresa y sus lanes en
+        <a [routerLink]="['/procesos', procesoId(), 'pools']">Pools y lanes</a>.
+      </p>
+    }
+
+    <app-pool-diagrama [pools]="pools()" [lanes]="lanes()" [actividades]="actividades()" [roles]="roles()" />
+
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Nombre</th>
+          <th scope="col">Tipo</th>
+          <th scope="col">Lane</th>
+          <th scope="col">Posición (X, Y)</th>
+          <th scope="col"><span class="nota">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (a of actividades(); track a.id) {
+          <tr>
+            <td>{{ a.nombre }}</td>
+            <td>{{ a.tipoActividad }}</td>
+            <td>{{ nombreLane(a.laneId) }}</td>
+            <td>{{ a.posicionX }}, {{ a.posicionY }}</td>
+            <td class="acciones-fila">
+              @if (puedeEditar()) {
+                <a [routerLink]="[a.id, 'editar']">Editar</a>
+              }
+              @if (puedeEliminar()) {
+                <button type="button" class="enlace peligro" (click)="remove(a)">Eliminar</button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5">Este proceso aún no tiene actividades.</td></tr>
+        }
+      </tbody>
+    </table>
+  }
+}

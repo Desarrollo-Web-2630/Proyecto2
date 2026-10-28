@@ -1,5 +1,4 @@
-// API simulada SOLO para probar el front sin backend (npm run mock).
-// Login: admin@demo.com / laura@demo.com (editor) / pedro@demo.com (lectura) / p@p.com (otra empresa), clave Demo12345.
+// API simulada para probar sin backend; clave de todos los usuarios: Demo12345
 import http from 'node:http';
 const db = {
   empresas: [{ id: 1, nombre: 'Empresa Demo', nit: '900000001', correo: 'admin@demo.com' }, { id: 2, nombre: 'Proveedor SAS', nit: '900000002', correo: 'p@p.com' }],
@@ -22,33 +21,65 @@ const validarActividad = (b) => !b.nombre?.trim() ? 'El nombre de la actividad e
   : b.laneId == null ? 'La actividad debe estar asociada a una lane'
   : (b.posicionX == null || b.posicionY == null) ? 'La posicion de la actividad en el diagrama es obligatoria'
   : (b.posicionX < 0 || b.posicionY < 0) ? 'La posicion de la actividad no puede ser negativa' : null;
-// Roles: "en uso" si alguna lane referencia el rol. Todos los procesos del mock son el 1.
-const procesosDondeSeUsa = (rolId) => db.lanes.some(l => l.rolProcesoId == rolId) ? [{ id: db.procesos[0].id, nombre: db.procesos[0].nombre }] : [];
+// Un rol está en uso si alguna lane lo usa
+const procesosDondeSeUsa = (rolId) => db.lanes.some(l => l.rolProcesoId == rolId) && db.procesos[0] ? [{ id: db.procesos[0].id, nombre: db.procesos[0].nombre }] : [];
 const rolDetalle = (r) => { const usos = procesosDondeSeUsa(r.id); return { ...r, procesosEnUso: usos, eliminable: usos.length === 0 }; };
 const validarRol = (b) => !b.nombre?.trim() ? 'El nombre del rol es obligatorio'
   : !b.descripcion?.trim() ? 'La descripcion del rol es obligatoria'
   : b.nombre.trim().length > 100 ? 'El nombre del rol no puede superar 100 caracteres'
   : b.descripcion.trim().length > 500 ? 'La descripcion del rol no puede superar 500 caracteres' : null;
+const validarProceso = (b) => !b.nombre?.trim() ? 'El nombre del proceso es obligatorio'
+  : !b.descripcion?.trim() ? 'La descripción del proceso es obligatoria'
+  : !b.categoria?.trim() ? 'La categoría del proceso es obligatoria'
+  : b.nombre.trim().length > 255 ? 'El nombre no puede superar los 255 caracteres'
+  : b.descripcion.trim().length > 255 ? 'La descripción no puede superar los 255 caracteres'
+  : b.categoria.trim().length > 255 ? 'La categoría no puede superar los 255 caracteres' : null;
 http.createServer((req, res) => {
   let body = ''; req.on('data', c => body += c); req.on('end', () => {
     const b = body ? JSON.parse(body) : {}; const u = new URL(req.url, 'http://x'); const u2 = u; const p = u.pathname; const m = req.method;
+    const empresaId = +(req.headers['x-empresa-id'] ?? 1);
     console.log(m, p, req.headers['x-empresa-id'] ?? '-');
     let r;
     if (m === 'POST' && p === '/api/v1/empresas') { if (db.empresas.some(e => e.nit === b.nit)) return err(res, 400, 'Ya existe una empresa con ese NIT'); const e = { id: ++seq, ...b }; db.empresas.push(e); return send(res, 201, e); }
     if (m === 'GET' && p === '/api/v1/empresas') return send(res, 200, db.empresas);
     if ((r = p.match(/^\/api\/v1\/empresas\/(\d+)$/))) return send(res, 200, db.empresas.find(e => e.id == r[1]));
-    // Igual que el backend real: el login NO devuelve empresaId
-    if (p === '/api/v1/usuarios/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); return u && b.password === 'Demo12345' ? send(res, 200, u) : send(res, 401); }
-    if (p === '/api/v1/usuarios' && m === 'GET') return send(res, 200, db.usuarios.filter(u => u.empresaId == (req.headers['x-empresa-id'] ?? 1)).map(({ empresaId, ...u }) => u));
-    if (p === '/api/v1/usuarios' && m === 'POST') { if (db.usuarios.some(u => u.correo === b.correo)) return err(res, 400, `Ya existe un usuario con el correo '${b.correo}'`); const u = { id: ++seq, nombre: b.nombre, correo: b.correo, rolAcceso: b.rolAcceso, activo: false, empresaId: +(req.headers['x-empresa-id'] ?? 1) }; db.usuarios.push(u); const { empresaId, ...v } = u; return send(res, 201, v); }
+    // Como el backend real, el login no devuelve empresaId
+    if (p === '/api/v1/usuarios/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); if (!u || b.password !== 'Demo12345') return send(res, 401); const { empresaId: _e, ...v } = u; return send(res, 200, v); }
+    if (p === '/api/v1/usuarios' && m === 'GET') return send(res, 200, db.usuarios.filter(u => u.empresaId == empresaId).map(({ empresaId: _e, ...u }) => u));
+    if (p === '/api/v1/usuarios' && m === 'POST') { if (db.usuarios.some(u => u.correo === b.correo)) return err(res, 400, `Ya existe un usuario con el correo '${b.correo}'`); const u = { id: ++seq, nombre: b.nombre, correo: b.correo, rolAcceso: b.rolAcceso, activo: false, empresaId }; db.usuarios.push(u); const { empresaId: _e, ...v } = u; return send(res, 201, v); }
     if ((r = p.match(/^\/api\/v1\/usuarios\/(\d+)\/rol$/))) { const u = db.usuarios.find(x => x.id == r[1]); u.rolAcceso = u2.searchParams.get('rolAcceso'); return send(res, 200, u); }
     if ((r = p.match(/^\/api\/v1\/usuarios\/(\d+)\/desactivar$/))) { const u = db.usuarios.find(x => x.id == r[1]); u.activo = false; return send(res, 200, u); }
     if (p === '/api/auth/reenviar-verificacion') return send(res, 200, { verificado: false, mensaje: 'Si el correo existe, se envió un nuevo enlace', correo: b.correo });
     if (p === '/api/auth/activar-cuenta') return send(res, 200, { verificado: true, mensaje: 'Cuenta activada', correo: 'a@a.com' });
     if (p === '/api/v1/procesos/compartidos') return send(res, 200, []);
-    if (p === '/api/v1/procesos') return send(res, 200, db.procesos);
-    // Roles de proceso (HU-17 a HU-20): mismas validaciones y mensajes que RolProcesoService.
-    // "En uso" = alguna lane del proceso usa el rol (en el backend real lo calculará HU-22 con Lane).
+    // Procesos (HU-04 a HU-07)
+    if (p === '/api/v1/procesos/buscar' && m === 'GET') {
+      const qNombre = (u.searchParams.get('nombre') ?? '').trim().toLowerCase();
+      const qCategoria = (u.searchParams.get('categoria') ?? '').trim().toLowerCase();
+      const qEstado = (u.searchParams.get('estado') ?? '').trim();
+      const incluirInactivos = u.searchParams.get('incluirInactivos') === 'true';
+      const page = Math.max(+(u.searchParams.get('page') ?? 0), 0), size = Math.min(Math.max(+(u.searchParams.get('size') ?? 10), 1), 100);
+      const todos = db.procesos.filter(pr =>
+        pr.empresaId == empresaId &&
+        (!qNombre || pr.nombre.toLowerCase().includes(qNombre)) &&
+        (!qCategoria || pr.categoria.toLowerCase() === qCategoria) &&
+        (!qEstado || pr.estado === qEstado) &&
+        (incluirInactivos || pr.estado !== 'INACTIVO')
+      ).sort((a, c) => a.nombre.localeCompare(c.nombre));
+      return send(res, 200, { content: todos.slice(page * size, page * size + size), totalElements: todos.length, totalPages: Math.ceil(todos.length / size), number: page, size });
+    }
+    if (p === '/api/v1/procesos') {
+      if (m === 'POST') {
+        const faltan = validarProceso(b); if (faltan) return err(res, 400, faltan);
+        const nombre = b.nombre.trim();
+        if (db.procesos.some(pr => pr.empresaId == empresaId && pr.nombre.toLowerCase() === nombre.toLowerCase())) return err(res, 400, `Ya existe un proceso llamado '${nombre}' en la empresa`);
+        const nuevo = { id: ++seq, nombre, descripcion: b.descripcion.trim(), categoria: b.categoria.trim(), estado: 'BORRADOR', empresaId };
+        db.procesos.push(nuevo); return send(res, 201, nuevo);
+      }
+      const incluirInactivos = u.searchParams.get('incluirInactivos') === 'true';
+      return send(res, 200, db.procesos.filter(pr => pr.empresaId == empresaId && (incluirInactivos || pr.estado !== 'INACTIVO')));
+    }
+    // Roles de proceso
     if (p === '/api/v1/roles-proceso/buscar' && m === 'GET') {
       const q = (u.searchParams.get('nombre') ?? '').trim().toLowerCase();
       const page = Math.max(+(u.searchParams.get('page') ?? 0), 0), size = Math.min(Math.max(+(u.searchParams.get('size') ?? 10), 1), 100);
@@ -81,8 +112,28 @@ http.createServer((req, res) => {
       return send(res, 200, rolDetalle(rol));
     }
     if (p === '/api/v1/permisos-pool') { if (m === 'PUT') db.permisos = b; return send(res, 200, db.permisos); }
-    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)$/))) return send(res, 200, db.procesos[0]);
-    // Actividades (HU-08/09/10): mismas validaciones y mensajes que ActividadService
+    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/(publicar|inactivar|reactivar)$/))) {
+      const proc = db.procesos.find(x => x.id == r[1] && x.empresaId == empresaId);
+      if (!proc) return err(res, 400, 'El proceso no existe o no pertenece a su empresa');
+      if (r[2] === 'publicar') { if (proc.estado === 'PUBLICADO') return err(res, 400, 'El proceso ya está publicado'); proc.estado = 'PUBLICADO'; }
+      if (r[2] === 'inactivar') { proc.estado = 'INACTIVO'; }
+      if (r[2] === 'reactivar') { if (proc.estado !== 'INACTIVO') return err(res, 400, 'El proceso no está inactivo'); proc.estado = 'BORRADOR'; }
+      return send(res, 200, proc);
+    }
+    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)$/))) {
+      const proc = db.procesos.find(x => x.id == r[1] && x.empresaId == empresaId);
+      if (!proc) return err(res, 400, 'El proceso no existe o no pertenece a su empresa');
+      if (m === 'PUT') {
+        const faltan = validarProceso(b); if (faltan) return err(res, 400, faltan);
+        const nombre = b.nombre.trim();
+        if (db.procesos.some(x => x.id !== proc.id && x.empresaId == empresaId && x.nombre.toLowerCase() === nombre.toLowerCase())) return err(res, 400, `Ya existe un proceso llamado '${nombre}' en la empresa`);
+        Object.assign(proc, { nombre, descripcion: b.descripcion.trim(), categoria: b.categoria.trim() });
+        return send(res, 200, proc);
+      }
+      if (m === 'DELETE') { db.procesos.splice(db.procesos.indexOf(proc), 1); return send(res, 204); }
+      return send(res, 200, proc);
+    }
+    // Actividades
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/actividades$/))) {
       if (m === 'GET') return send(res, 200, db.actividades);
       if (m === 'POST') {
@@ -110,8 +161,7 @@ http.createServer((req, res) => {
       }
       return send(res, 200, a);
     }
-    // Arcos: solo lo necesario para probar la advertencia de HU-10 (el CRUD completo es de HU-11 a HU-13)
-    // Crear uno a mano:  curl -X POST localhost:8080/api/v1/procesos/1/arcos -H 'Content-Type: application/json' -d '{"origenId":900,"destinoId":101}'
+    // Arcos: solo lo necesario para HU-10
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/arcos$/))) {
       if (m === 'POST') {
         const o = db.actividades.find(x => x.id == b.origenId), d = db.actividades.find(x => x.id == b.destinoId);

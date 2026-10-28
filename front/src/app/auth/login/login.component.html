@@ -1,0 +1,32 @@
+<main>
+  <h2>Iniciar sesión</h2>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label>
+      Correo
+      <input type="email" formControlName="correo" autocomplete="username">
+    </label>
+    @if (form.controls.correo.touched && form.controls.correo.invalid) {
+      <small class="error">@if (form.controls.correo.hasError('required')) { El correo es obligatorio } @else if (form.controls.correo.hasError('email')) { El correo no tiene un formato válido }</small>
+    }
+
+    <label>
+      Contraseña
+      <input type="password" formControlName="password" autocomplete="current-password">
+    </label>
+    @if (form.controls.password.touched && form.controls.password.invalid) {
+      <small class="error">La contraseña es obligatoria</small>
+    }
+
+    @if (message()) {
+      <p class="error" role="alert">{{ message() }}</p>
+    }
+
+    <div class="acciones">
+      <button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Entrando…' : 'Entrar' }}
+      </button>
+      <a routerLink="/registro">Registrar mi empresa</a>
+    </div>
+  </form>
+</main>
