@@ -7,6 +7,16 @@ export const PROCESOS_ROUTES: Routes = [
     loadComponent: () => import('./proceso-list/proceso-list.component').then(m => m.ProcesoListComponent)
   },
   {
+    path: 'nuevo',
+    title: 'Nuevo proceso',
+    loadComponent: () => import('./proceso-form/proceso-form.component').then(m => m.ProcesoFormComponent)
+  },
+  {
+    path: ':id/editar',
+    title: 'Editar proceso',
+    loadComponent: () => import('./proceso-form/proceso-form.component').then(m => m.ProcesoFormComponent)
+  },
+  {
     path: ':procesoId/pools',
     title: 'Pools y lanes',
     loadComponent: () => import('../pools/pool-list/pool-list.component').then(m => m.PoolListComponent)

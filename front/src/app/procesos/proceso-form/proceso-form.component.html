@@ -1,0 +1,49 @@
+<h2>{{ editing() ? 'Editar proceso' : 'Nuevo proceso' }}</h2>
+
+@if (!puedeEditar()) {
+  <p class="error">Tu rol de acceso no permite crear ni editar procesos.</p>
+  <a routerLink="/procesos">Volver</a>
+} @else if (loading()) {
+  <p>Cargando…</p>
+} @else {
+  @if (!editing()) {
+    <p class="nota">El proceso nace en estado borrador; podrás publicarlo desde el listado.</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <label>
+      Nombre
+      <input formControlName="nombre" placeholder="Solicitud de vacaciones">
+    </label>
+    @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+      <small class="error">@if (form.controls.nombre.hasError('required')) { El nombre es obligatorio } @else if (form.controls.nombre.hasError('pattern')) { El nombre no puede ser solo espacios } @else if (form.controls.nombre.hasError('maxlength')) { Máximo 255 caracteres }</small>
+    }
+
+    <label>
+      Descripción
+      <input formControlName="descripcion" placeholder="Qué hace este proceso">
+    </label>
+    @if (form.controls.descripcion.touched && form.controls.descripcion.invalid) {
+      <small class="error">@if (form.controls.descripcion.hasError('required')) { La descripción es obligatoria } @else if (form.controls.descripcion.hasError('pattern')) { La descripción no puede ser solo espacios } @else if (form.controls.descripcion.hasError('maxlength')) { Máximo 255 caracteres }</small>
+    }
+
+    <label>
+      Categoría
+      <input formControlName="categoria" placeholder="Talento Humano">
+    </label>
+    @if (form.controls.categoria.touched && form.controls.categoria.invalid) {
+      <small class="error">@if (form.controls.categoria.hasError('required')) { La categoría es obligatoria } @else if (form.controls.categoria.hasError('pattern')) { La categoría no puede ser solo espacios } @else if (form.controls.categoria.hasError('maxlength')) { Máximo 255 caracteres }</small>
+    }
+
+    @if (message()) {
+      <p class="error" role="alert">{{ message() }}</p>
+    }
+
+    <div class="acciones">
+      <button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Guardando…' : 'Guardar' }}
+      </button>
+      <a routerLink="/procesos">Cancelar</a>
+    </div>
+  </form>
+}
