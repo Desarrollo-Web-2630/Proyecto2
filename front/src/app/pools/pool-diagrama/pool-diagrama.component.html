@@ -1,17 +1,55 @@
-@for (pool of pools; track pool.id) {
+@if (editable() && pools().length > 0) {
+  <p class="nota">
+    Arrastra las actividades para ubicarlas en el lienzo o moverlas a otra lane. Arrastra el nombre
+    de una lane para cambiar su orden.
+  </p>
+}
+
+@for (pool of pools(); track pool.id) {
   <div class="pool">
     <div class="pool-nombre">{{ pool.nombre }}</div>
     @if (pool.tipo === 'PROPIETARIO') {
       <div class="pool-lanes">
-        @for (lane of lanes; track lane.id) {
-          <div class="lane">
-            <div class="lane-nombre">
+        @for (lane of lanes(); track lane.id) {
+          <div
+            class="lane"
+            [class.lane-activa]="laneActivaId() === lane.id"
+            (dragover)="permitirSoltarLane($event, lane.id)"
+            (dragleave)="salirDeLane(lane.id)"
+            (drop)="soltarLane($event, lane.id)"
+          >
+            <div
+              class="lane-nombre"
+              [class.arrastrable]="editable() && lanes().length > 1"
+              [class.arrastrando]="laneArrastradaId() === lane.id"
+              [attr.draggable]="editable() && lanes().length > 1"
+              (dragstart)="iniciarArrastreLane($event, lane.id)"
+              (dragend)="finalizarArrastre()"
+            >
               {{ lane.nombre }}
               <small>Rol: {{ nombreRol(lane.rolProcesoId) }}</small>
             </div>
-            <div class="lane-actividades">
+            <div
+              class="lane-actividades"
+              [style.min-height.px]="alturaLane(lane.id)"
+              (dragover)="permitirSoltarActividad($event, lane.id)"
+              (dragleave)="salirDeLane(lane.id)"
+              (drop)="soltarActividad($event, lane.id)"
+            >
               @for (a of actividadesDe(lane.id); track a.id) {
-                <div class="actividad">{{ a.nombre }}</div>
+                <div
+                  class="actividad"
+                  [class.arrastrable]="editable()"
+                  [class.arrastrando]="actividadArrastrada()?.id === a.id"
+                  [attr.draggable]="editable()"
+                  [style.left.px]="a.posicionX"
+                  [style.top.px]="a.posicionY"
+                  (dragstart)="iniciarArrastreActividad($event, a)"
+                  (dragend)="finalizarArrastre()"
+                >
+                  <span>{{ a.nombre }}</span>
+                  <small>{{ a.tipoActividad }}</small>
+                </div>
               }
             </div>
           </div>

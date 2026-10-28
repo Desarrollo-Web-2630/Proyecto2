@@ -13,7 +13,10 @@ import { PoolService } from '../../services/pool.service';
 import { ProcesoService } from '../../services/proceso.service';
 import { RolProcesoService } from '../../services/rol-proceso.service';
 import { SesionService } from '../../services/sesion.service';
-import { PoolDiagramaComponent } from '../pool-diagrama/pool-diagrama.component';
+import {
+  MovimientoActividad,
+  PoolDiagramaComponent
+} from '../pool-diagrama/pool-diagrama.component';
 
 // HU-21 y HU-22
 @Component({
@@ -219,6 +222,56 @@ export class PoolListComponent implements OnInit {
     }
     [ids[indice], ids[destino]] = [ids[destino], ids[indice]];
     this.ejecutar(this.laneService.ordenar(this.id, pool.id, ids), 'No fue posible reordenar las lanes');
+  }
+
+  reordenarLanesDiagrama(lanesIds: number[]): void {
+    const pool = this.propietario();
+    if (!pool || this.soloLectura()) {
+      return;
+    }
+    this.ejecutar(
+      this.laneService.ordenar(this.id, pool.id, lanesIds),
+      'No fue posible reordenar las lanes'
+    );
+  }
+
+  moverActividadDiagrama(mov: MovimientoActividad): void {
+    if (this.soloLectura()) {
+      return;
+    }
+    const { actividad, laneId, posicionX, posicionY } = mov;
+    if (
+      actividad.laneId === laneId &&
+      actividad.posicionX === posicionX &&
+      actividad.posicionY === posicionY
+    ) {
+      return;
+    }
+    this.actionError.set('');
+    const previas = this.actividades();
+    this.actividades.update(lista =>
+      lista.map(a => (a.id === actividad.id ? { ...a, laneId, posicionX, posicionY } : a))
+    );
+    const peticion =
+      actividad.laneId === laneId
+        ? this.actividadService.mover(this.id, actividad.id, posicionX, posicionY)
+        : this.actividadService.update(this.id, actividad.id, {
+            nombre: actividad.nombre,
+            tipoActividad: actividad.tipoActividad,
+            laneId,
+            posicionX,
+            posicionY
+          });
+    peticion
+      .then(actualizada => {
+        this.actividades.update(lista =>
+          lista.map(a => (a.id === actualizada.id ? actualizada : a))
+        );
+      })
+      .catch(err => {
+        this.actividades.set(previas);
+        this.actionError.set(mensajeDeError(err, 'No fue posible mover la actividad'));
+      });
   }
 
   eliminarLane(lane: Lane): void {
