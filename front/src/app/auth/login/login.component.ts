@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
@@ -15,6 +16,7 @@ export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly saving = signal(false);
   protected readonly message = signal('');
@@ -32,11 +34,14 @@ export class LoginComponent {
     this.saving.set(true);
     this.message.set('');
     this.authService.login(this.form.getRawValue())
-      .then(() => this.router.navigate(['/procesos']))
-      .catch(err => {
-        // Mensaje genérico: no se revela si el correo existe
-        this.message.set(mensajeDeError(err, 'Correo o contraseña incorrectos'));
-        this.saving.set(false);
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.router.navigate(['/procesos']),
+        error: err => {
+          // Mensaje genérico: no se revela si el correo existe
+          this.message.set(mensajeDeError(err, 'Correo o contraseña incorrectos'));
+          this.saving.set(false);
+        }
       });
   }
 }

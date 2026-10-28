@@ -7,6 +7,7 @@ export interface Usuario {
   correo: string;
   rolAcceso: RolAcceso;
   activo: boolean;
+  empresaId: number;
 }
 
 // Espejo de UsuarioDTO

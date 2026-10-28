@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
@@ -17,6 +18,7 @@ export class UsuarioFormComponent {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(UsuarioService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly sesion = inject(SesionService);
 
   protected readonly roles: RolAcceso[] = ['ADMIN', 'EDITOR', 'LECTURA'];
@@ -41,10 +43,13 @@ export class UsuarioFormComponent {
     this.saving.set(true);
     this.message.set('');
     this.service.create(usuario)
-      .then(() => this.router.navigate(['/usuarios']))
-      .catch(err => {
-        this.message.set(mensajeDeError(err, 'No fue posible invitar al usuario'));
-        this.saving.set(false);
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.router.navigate(['/usuarios']),
+        error: err => {
+          this.message.set(mensajeDeError(err, 'No fue posible invitar al usuario'));
+          this.saving.set(false);
+        }
       });
   }
 }

@@ -1,28 +1,31 @@
-import { Injectable } from '@angular/core';
-import { api } from '../core/api';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { Page } from '../models/page.model';
 import { RolAcceso, Usuario, UsuarioRequest } from '../models/usuario.model';
 
 @Injectable({ providedIn: 'root' })
 export class UsuarioService {
+  private readonly http = inject(HttpClient);
   private readonly url = '/v1/usuarios';
 
-  list(): Promise<Usuario[]> {
-    return api.get<Usuario[]>(this.url).then(r => r.data);
+  list(): Observable<Usuario[]> {
+    return this.http.get<Usuario[]>(this.url);
   }
 
-  listDeEmpresa(empresaId: number): Promise<Usuario[]> {
-    return api.get<Usuario[]>(this.url, { headers: { 'X-Empresa-Id': String(empresaId) } }).then(r => r.data);
+  buscar(page: number, size: number): Observable<Page<Usuario>> {
+    return this.http.get<Page<Usuario>>(`${this.url}/buscar`, { params: { page, size } });
   }
 
-  create(usuario: UsuarioRequest): Promise<Usuario> {
-    return api.post<Usuario>(this.url, usuario).then(r => r.data);
+  create(usuario: UsuarioRequest): Observable<Usuario> {
+    return this.http.post<Usuario>(this.url, usuario);
   }
 
-  cambiarRol(id: number, rolAcceso: RolAcceso): Promise<Usuario> {
-    return api.post<Usuario>(`${this.url}/${id}/rol`, null, { params: { rolAcceso } }).then(r => r.data);
+  cambiarRol(id: number, rolAcceso: RolAcceso): Observable<Usuario> {
+    return this.http.post<Usuario>(`${this.url}/${id}/rol`, null, { params: { rolAcceso } });
   }
 
-  desactivar(id: number): Promise<Usuario> {
-    return api.post<Usuario>(`${this.url}/${id}/desactivar`).then(r => r.data);
+  desactivar(id: number): Observable<Usuario> {
+    return this.http.post<Usuario>(`${this.url}/${id}/desactivar`, null);
   }
 }

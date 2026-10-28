@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Observable, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { mensajeDeError } from '../../core/api-error';
 import { Actividad } from '../../models/actividad.model';
 import { Lane } from '../../models/lane.model';
@@ -33,6 +35,7 @@ export class PoolListComponent implements OnInit {
   private readonly actividadService = inject(ActividadService);
   private readonly rolService = inject(RolProcesoService);
   private readonly sesion = inject(SesionService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly procesoId = input.required<string>();
 
@@ -76,45 +79,58 @@ export class PoolListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    Promise.all([this.procesoService.get(this.id), this.rolService.list()])
-      .then(([proceso, roles]) => {
-        this.proceso.set(proceso);
-        this.roles.set(roles);
-        return this.load();
-      })
-      .then(() => this.status.set('success'))
-      .catch(err => {
-        this.message.set(mensajeDeError(err, 'No fue posible cargar el proceso'));
-        this.status.set('error');
+    forkJoin({ proceso: this.procesoService.get(this.id), roles: this.rolService.list() })
+      .pipe(
+        tap(({ proceso, roles }) => {
+          this.proceso.set(proceso);
+          this.roles.set(roles);
+        }),
+        switchMap(() => this.load()),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: () => this.status.set('success'),
+        error: err => {
+          this.message.set(mensajeDeError(err, 'No fue posible cargar el proceso'));
+          this.status.set('error');
+        }
       });
   }
 
   // Trae pools, lanes del pool propietario y actividades
-  private async load(): Promise<void> {
-    const [pools, actividades] = await Promise.all([
-      this.poolService.list(this.id),
-      this.actividadService.list(this.id)
-    ]);
-    this.pools.set(pools);
-    this.actividades.set(actividades);
-    const propietario = pools.find(p => p.tipo === 'PROPIETARIO');
-    const lanes = propietario ? await this.laneService.list(this.id, propietario.id) : [];
-    this.lanes.set(lanes.sort((a, b) => a.orden - b.orden));
-    if (!propietario) {
-      this.poolForm.controls.tipo.setValue('PROPIETARIO');
-    } else if (this.poolForm.controls.tipo.value === 'PROPIETARIO' && !this.editandoPool()) {
-      this.poolForm.controls.tipo.setValue('CLIENTE');
-    }
+  private load(): Observable<void> {
+    return forkJoin({
+      pools: this.poolService.list(this.id),
+      actividades: this.actividadService.list(this.id)
+    }).pipe(
+      switchMap(({ pools, actividades }) => {
+        const propietario = pools.find(p => p.tipo === 'PROPIETARIO');
+        const lanes$ = propietario ? this.laneService.list(this.id, propietario.id) : of([] as Lane[]);
+        return lanes$.pipe(map(lanes => ({ pools, actividades, propietario, lanes })));
+      }),
+      map(({ pools, actividades, propietario, lanes }) => {
+        this.pools.set(pools);
+        this.actividades.set(actividades);
+        this.lanes.set(lanes.sort((a, b) => a.orden - b.orden));
+        if (!propietario) {
+          this.poolForm.controls.tipo.setValue('PROPIETARIO');
+        } else if (this.poolForm.controls.tipo.value === 'PROPIETARIO' && !this.editandoPool()) {
+          this.poolForm.controls.tipo.setValue('CLIENTE');
+        }
+      })
+    );
   }
 
-  private ejecutar(accion: Promise<unknown>, porDefecto: string): Promise<boolean> {
+  private ejecutar(accion: Observable<unknown>, porDefecto: string, alTerminar?: () => void): void {
     this.actionError.set('');
-    return accion
-      .then(() => this.load())
-      .then(() => true)
-      .catch(err => {
-        this.actionError.set(mensajeDeError(err, porDefecto));
-        return false;
+    accion
+      .pipe(
+        switchMap(() => this.load()),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: () => alTerminar?.(),
+        error: err => this.actionError.set(mensajeDeError(err, porDefecto))
       });
   }
 
@@ -144,11 +160,7 @@ export class PoolListComponent implements OnInit {
     const accion = pool
       ? this.poolService.update(this.id, pool.id, { nombre: datos.nombre.trim(), tipo: datos.tipo })
       : this.poolService.create(this.id, { nombre: datos.nombre.trim(), tipo: datos.tipo });
-    this.ejecutar(accion, 'No fue posible guardar el pool').then(ok => {
-      if (ok) {
-        this.cancelarPool();
-      }
-    });
+    this.ejecutar(accion, 'No fue posible guardar el pool', () => this.cancelarPool());
   }
 
   editarPool(pool: Pool): void {
@@ -196,11 +208,7 @@ export class PoolListComponent implements OnInit {
     const accion = lane
       ? this.laneService.update(this.id, pool.id, lane.id, datos)
       : this.laneService.create(this.id, pool.id, datos);
-    this.ejecutar(accion, 'No fue posible guardar la lane').then(ok => {
-      if (ok) {
-        this.cancelarLane();
-      }
-    });
+    this.ejecutar(accion, 'No fue posible guardar la lane', () => this.cancelarLane());
   }
 
   editarLane(lane: Lane): void {
@@ -262,16 +270,17 @@ export class PoolListComponent implements OnInit {
             posicionX,
             posicionY
           });
-    peticion
-      .then(actualizada => {
+    peticion.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: actualizada => {
         this.actividades.update(lista =>
           lista.map(a => (a.id === actualizada.id ? actualizada : a))
         );
-      })
-      .catch(err => {
+      },
+      error: err => {
         this.actividades.set(previas);
         this.actionError.set(mensajeDeError(err, 'No fue posible mover la actividad'));
-      });
+      }
+    });
   }
 
   eliminarLane(lane: Lane): void {

@@ -1,6 +1,4 @@
 import { Usuario } from './usuario.model';
 
-// Usuario autenticado y su empresa
-export interface Sesion extends Usuario {
-  empresaId: number;
-}
+// El usuario autenticado ya trae el id de su empresa
+export type Sesion = Usuario;

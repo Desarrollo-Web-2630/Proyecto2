@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { Observable } from 'rxjs';
 import { mensajeDeError } from '../../core/api-error';
 import { Proceso, ProcesoRequest } from '../../models/proceso.model';
 import { ProcesoService } from '../../services/proceso.service';
@@ -17,6 +19,7 @@ export class ProcesoFormComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly service = inject(ProcesoService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly sesion = inject(SesionService);
 
   // Parámetro :id de la ruta; no existe al crear
@@ -42,17 +45,20 @@ export class ProcesoFormComponent implements OnInit {
     }
     this.loading.set(true);
     this.service.get(Number(id))
-      .then(proceso => {
-        this.form.setValue({
-          nombre: proceso.nombre,
-          descripcion: proceso.descripcion,
-          categoria: proceso.categoria
-        });
-        this.loading.set(false);
-      })
-      .catch(err => {
-        this.message.set(mensajeDeError(err, 'No fue posible cargar el proceso'));
-        this.loading.set(false);
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: proceso => {
+          this.form.setValue({
+            nombre: proceso.nombre,
+            descripcion: proceso.descripcion,
+            categoria: proceso.categoria
+          });
+          this.loading.set(false);
+        },
+        error: err => {
+          this.message.set(mensajeDeError(err, 'No fue posible cargar el proceso'));
+          this.loading.set(false);
+        }
       });
   }
 
@@ -68,17 +74,20 @@ export class ProcesoFormComponent implements OnInit {
       categoria: datos.categoria.trim()
     };
     const id = this.id();
-    const request: Promise<Proceso> = id === undefined
+    const request: Observable<Proceso> = id === undefined
       ? this.service.create(proceso)
       : this.service.update(Number(id), proceso);
 
     this.saving.set(true);
     this.message.set('');
     request
-      .then(() => this.router.navigate(['/procesos']))
-      .catch(err => {
-        this.message.set(mensajeDeError(err, 'No fue posible guardar el proceso'));
-        this.saving.set(false);
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.router.navigate(['/procesos']),
+        error: err => {
+          this.message.set(mensajeDeError(err, 'No fue posible guardar el proceso'));
+          this.saving.set(false);
+        }
       });
   }
 }

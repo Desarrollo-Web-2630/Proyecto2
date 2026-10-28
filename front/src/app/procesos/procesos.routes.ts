@@ -22,6 +22,21 @@ export const PROCESOS_ROUTES: Routes = [
     loadComponent: () => import('../pools/pool-list/pool-list.component').then(m => m.PoolListComponent)
   },
   {
+    path: ':procesoId/gateways',
+    title: 'Gateways',
+    loadComponent: () => import('../gateways/gateway-list/gateway-list.component').then(m => m.GatewayListComponent)
+  },
+  {
+    path: ':procesoId/arcos',
+    title: 'Arcos',
+    loadComponent: () => import('../arcos/arco-list/arco-list.component').then(m => m.ArcoListComponent)
+  },
+  {
+    path: ':procesoId/mensajes',
+    title: 'Mensajes',
+    loadComponent: () => import('../mensajes/mensaje-list/mensaje-list.component').then(m => m.MensajeListComponent)
+  },
+  {
     path: ':procesoId/actividades',
     title: 'Actividades',
     loadComponent: () => import('../actividades/actividad-list/actividad-list.component').then(m => m.ActividadListComponent)

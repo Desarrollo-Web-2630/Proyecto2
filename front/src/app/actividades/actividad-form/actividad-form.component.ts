@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { Observable, forkJoin, of, switchMap } from 'rxjs';
 import { mensajeDeError } from '../../core/api-error';
 import { Actividad, ActividadRequest } from '../../models/actividad.model';
 import { Lane } from '../../models/lane.model';
@@ -21,6 +23,7 @@ export class ActividadFormComponent implements OnInit {
   private readonly poolService = inject(PoolService);
   private readonly laneService = inject(LaneService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly procesoId = input.required<string>();
   // Parámetro :id de la ruta; no existe al crear
@@ -45,30 +48,35 @@ export class ActividadFormComponent implements OnInit {
   ngOnInit(): void {
     const procesoId = Number(this.procesoId());
     const id = this.id();
-    Promise.all([
-      this.poolService.list(procesoId).then(pools => {
-        const propietario = pools.find(p => p.tipo === 'PROPIETARIO');
-        return propietario ? this.laneService.list(procesoId, propietario.id) : [];
-      }),
-      this.actividadService.list(procesoId),
-      id === undefined ? Promise.resolve(null) : this.actividadService.get(procesoId, Number(id))
-    ])
-      .then(([lanes, actividades, actividad]) => {
-        this.lanes.set(lanes.sort((a, b) => a.orden - b.orden));
-        this.actividadesExistentes.set(actividades);
-        if (actividad) {
-          this.actividadActual.set(actividad);
-          this.form.setValue({
-            nombre: actividad.nombre,
-            tipoActividad: actividad.tipoActividad,
-            laneId: actividad.laneId
-          });
+    forkJoin({
+      lanes: this.poolService.list(procesoId).pipe(
+        switchMap(pools => {
+          const propietario = pools.find(p => p.tipo === 'PROPIETARIO');
+          return propietario ? this.laneService.list(procesoId, propietario.id) : of([] as Lane[]);
+        })
+      ),
+      actividades: this.actividadService.list(procesoId),
+      actividad: id === undefined ? of(null) : this.actividadService.get(procesoId, Number(id))
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ lanes, actividades, actividad }) => {
+          this.lanes.set(lanes.sort((a, b) => a.orden - b.orden));
+          this.actividadesExistentes.set(actividades);
+          if (actividad) {
+            this.actividadActual.set(actividad);
+            this.form.setValue({
+              nombre: actividad.nombre,
+              tipoActividad: actividad.tipoActividad,
+              laneId: actividad.laneId
+            });
+          }
+          this.loading.set(false);
+        },
+        error: err => {
+          this.message.set(mensajeDeError(err, 'No fue posible cargar la actividad'));
+          this.loading.set(false);
         }
-        this.loading.set(false);
-      })
-      .catch(err => {
-        this.message.set(mensajeDeError(err, 'No fue posible cargar la actividad'));
-        this.loading.set(false);
       });
   }
 
@@ -94,7 +102,7 @@ export class ActividadFormComponent implements OnInit {
     };
     const procesoId = Number(this.procesoId());
     const id = this.id();
-    const request: Promise<Actividad> =
+    const request: Observable<Actividad> =
       id === undefined
         ? this.actividadService.create(procesoId, actividad)
         : this.actividadService.update(procesoId, Number(id), actividad);
@@ -102,10 +110,13 @@ export class ActividadFormComponent implements OnInit {
     this.saving.set(true);
     this.message.set('');
     request
-      .then(() => this.router.navigate(['/procesos', procesoId, 'actividades']))
-      .catch(err => {
-        this.message.set(mensajeDeError(err, 'No fue posible guardar la actividad'));
-        this.saving.set(false);
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.router.navigate(['/procesos', procesoId, 'actividades']),
+        error: err => {
+          this.message.set(mensajeDeError(err, 'No fue posible guardar la actividad'));
+          this.saving.set(false);
+        }
       });
   }
 

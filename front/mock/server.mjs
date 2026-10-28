@@ -10,12 +10,16 @@ const db = {
     { id: 3, nombre: 'Pedro Lector', correo: 'pedro@demo.com', rolAcceso: 'LECTURA', activo: true, empresaId: 1 },
     { id: 4, nombre: 'Admin Proveedor', correo: 'p@p.com', rolAcceso: 'ADMIN', activo: true, empresaId: 2 },
   ],
-  pools: [], lanes: [], actividades: [], arcos: [], comp: { compartido: false, empresasIds: [] },
+  pools: [], lanes: [], actividades: [], arcos: [], gateways: [], mensajes: [], comp: { compartido: false, empresasIds: [] },
   permisos: { crear: ['ADMIN', 'EDITOR'], editar: ['ADMIN', 'EDITOR'], eliminar: ['ADMIN'] },
 };
 let seq = 100;
 const send = (res, s, b) => { res.writeHead(s, { 'Content-Type': 'application/json' }); res.end(b === undefined ? '' : JSON.stringify(b)); };
 const err = (res, s, m) => send(res, s, { timestamp: new Date().toISOString(), status: s, mensaje: m });
+const paginar = (lista, url) => {
+  const page = Math.max(+(url.searchParams.get('page') ?? 0), 0), size = Math.min(Math.max(+(url.searchParams.get('size') ?? 10), 1), 100);
+  return { content: lista.slice(page * size, page * size + size), totalElements: lista.length, totalPages: Math.ceil(lista.length / size), number: page, size };
+};
 const validarActividad = (b) => !b.nombre?.trim() ? 'El nombre de la actividad es obligatorio'
   : !b.tipoActividad?.trim() ? 'El tipo de actividad es obligatorio'
   : b.laneId == null ? 'La actividad debe estar asociada a una lane'
@@ -43,10 +47,10 @@ http.createServer((req, res) => {
     if (m === 'POST' && p === '/api/v1/empresas') { if (db.empresas.some(e => e.nit === b.nit)) return err(res, 400, 'Ya existe una empresa con ese NIT'); const e = { id: ++seq, ...b }; db.empresas.push(e); return send(res, 201, e); }
     if (m === 'GET' && p === '/api/v1/empresas') return send(res, 200, db.empresas);
     if ((r = p.match(/^\/api\/v1\/empresas\/(\d+)$/))) return send(res, 200, db.empresas.find(e => e.id == r[1]));
-    // Como el backend real, el login no devuelve empresaId
-    if (p === '/api/v1/usuarios/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); if (!u || b.password !== 'Demo12345') return send(res, 401); const { empresaId: _e, ...v } = u; return send(res, 200, v); }
-    if (p === '/api/v1/usuarios' && m === 'GET') return send(res, 200, db.usuarios.filter(u => u.empresaId == empresaId).map(({ empresaId: _e, ...u }) => u));
-    if (p === '/api/v1/usuarios' && m === 'POST') { if (db.usuarios.some(u => u.correo === b.correo)) return err(res, 400, `Ya existe un usuario con el correo '${b.correo}'`); const u = { id: ++seq, nombre: b.nombre, correo: b.correo, rolAcceso: b.rolAcceso, activo: false, empresaId }; db.usuarios.push(u); const { empresaId: _e, ...v } = u; return send(res, 201, v); }
+    if (p === '/api/v1/usuarios/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); if (!u || b.password !== 'Demo12345') return send(res, 401); return send(res, 200, u); }
+    if (p === '/api/v1/usuarios' && m === 'GET') return send(res, 200, db.usuarios.filter(u => u.empresaId == empresaId));
+    if (p === '/api/v1/usuarios/buscar' && m === 'GET') return send(res, 200, paginar(db.usuarios.filter(u => u.empresaId == empresaId).sort((a, c) => a.nombre.localeCompare(c.nombre)), u));
+    if (p === '/api/v1/usuarios' && m === 'POST') { if (db.usuarios.some(u => u.correo === b.correo)) return err(res, 400, `Ya existe un usuario con el correo '${b.correo}'`); const u = { id: ++seq, nombre: b.nombre, correo: b.correo, rolAcceso: b.rolAcceso, activo: false, empresaId }; db.usuarios.push(u); return send(res, 201, u); }
     if ((r = p.match(/^\/api\/v1\/usuarios\/(\d+)\/rol$/))) { const u = db.usuarios.find(x => x.id == r[1]); u.rolAcceso = u2.searchParams.get('rolAcceso'); return send(res, 200, u); }
     if ((r = p.match(/^\/api\/v1\/usuarios\/(\d+)\/desactivar$/))) { const u = db.usuarios.find(x => x.id == r[1]); u.activo = false; return send(res, 200, u); }
     if (p === '/api/auth/reenviar-verificacion') return send(res, 200, { verificado: false, mensaje: 'Si el correo existe, se envió un nuevo enlace', correo: b.correo });
@@ -134,6 +138,7 @@ http.createServer((req, res) => {
       return send(res, 200, proc);
     }
     // Actividades
+    if (p.match(/^\/api\/v1\/procesos\/\d+\/actividades\/buscar$/) && m === 'GET') return send(res, 200, paginar(db.actividades.slice().sort((a, c) => a.nombre.localeCompare(c.nombre)), u));
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/actividades$/))) {
       if (m === 'GET') return send(res, 200, db.actividades);
       if (m === 'POST') {
@@ -169,15 +174,86 @@ http.createServer((req, res) => {
       }
       return send(res, 200, a);
     }
-    // Arcos: solo lo necesario para HU-10
+    // Gateways
+    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/gateways$/))) {
+      if (m === 'POST') {
+        if (!b.nombre?.trim()) return err(res, 400, 'El nombre del gateway es obligatorio');
+        if (!b.tipo) return err(res, 400, 'El tipo de gateway es obligatorio');
+        const g = { id: ++seq, nombre: b.nombre.trim(), tipo: b.tipo, procesoId: +r[1] };
+        db.gateways.push(g); return send(res, 201, g);
+      }
+      return send(res, 200, db.gateways);
+    }
+    if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/gateways\/(\d+)$/))) {
+      const g = db.gateways.find(x => x.id == r[1]);
+      if (!g) return err(res, 400, 'El gateway no existe o no pertenece a su empresa');
+      if (m === 'PUT') { Object.assign(g, { nombre: b.nombre.trim(), tipo: b.tipo }); return send(res, 200, g); }
+      if (m === 'DELETE') {
+        db.arcos = db.arcos.filter(x => x.origenId !== g.id && x.destinoId !== g.id);
+        db.gateways.splice(db.gateways.indexOf(g), 1); return send(res, 204);
+      }
+      return send(res, 200, g);
+    }
+    // Arcos
+    const elemento = (id) => db.actividades.find(x => x.id == id) ?? db.gateways.find(x => x.id == id);
+    const poolDe = (el) => el?.laneId == null ? null : db.lanes.find(l => l.id == el.laneId)?.poolId ?? null;
+    const validarArco = (datos, idActual) => {
+      const o = elemento(datos.origenId), d = elemento(datos.destinoId);
+      if (datos.origenId == null || datos.destinoId == null) return 'El arco debe indicar un elemento de origen y uno de destino';
+      if (datos.origenId == datos.destinoId) return 'Un arco no puede conectar un elemento consigo mismo';
+      if (!o || !d) return 'El elemento no existe o no pertenece a su empresa';
+      const po = poolDe(o), pd = poolDe(d);
+      if (po !== null && pd !== null && po !== pd) return 'Un arco no puede cruzar de un pool a otro; use un mensaje';
+      if (db.arcos.some(x => x.id !== idActual && x.origenId == o.id && x.destinoId == d.id)) return 'Ya existe un arco que conecta esos dos elementos';
+      return null;
+    };
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/arcos$/))) {
       if (m === 'POST') {
-        const o = db.actividades.find(x => x.id == b.origenId), d = db.actividades.find(x => x.id == b.destinoId);
-        if (!o || !d) return err(res, 400, 'Origen o destino no existen');
-        const x = { id: ++seq, nombre: b.nombre ?? null, condicion: null, origenId: o.id, origenNombre: o.nombre, destinoId: d.id, destinoNombre: d.nombre, procesoId: +r[1] };
+        const falla = validarArco(b); if (falla) return err(res, 400, falla);
+        const o = elemento(b.origenId), d = elemento(b.destinoId);
+        const x = { id: ++seq, nombre: b.nombre ?? null, condicion: b.condicion ?? null, origenId: o.id, origenNombre: o.nombre, destinoId: d.id, destinoNombre: d.nombre, procesoId: +r[1] };
         db.arcos.push(x); return send(res, 201, x);
       }
       return send(res, 200, db.arcos);
+    }
+    if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/arcos\/(\d+)$/))) {
+      const x = db.arcos.find(a => a.id == r[1]);
+      if (!x) return err(res, 400, 'El arco no existe o no pertenece a su empresa');
+      if (m === 'PUT') {
+        const falla = validarArco(b, x.id); if (falla) return err(res, 400, falla);
+        const o = elemento(b.origenId), d = elemento(b.destinoId);
+        Object.assign(x, { nombre: b.nombre ?? null, condicion: b.condicion ?? null, origenId: o.id, origenNombre: o.nombre, destinoId: d.id, destinoNombre: d.nombre });
+        return send(res, 200, x);
+      }
+      if (m === 'DELETE') {
+        db.arcos.splice(db.arcos.indexOf(x), 1);
+        return send(res, 200, { mensaje: 'Arco eliminado correctamente.', advertencia: `Al eliminar este arco, '${x.destinoNombre}' se queda sin ningún camino de entrada.` });
+      }
+      return send(res, 200, x);
+    }
+    // Mensajes
+    const validarMensaje = (datos) => !datos.nombre?.trim() ? 'El nombre del mensaje es obligatorio'
+      : !datos.claveCorrelacion?.trim() ? 'La clave de correlacion es obligatoria'
+      : datos.poolOrigenId == null || datos.poolDestinoId == null ? 'El pool de origen y el de destino son obligatorios'
+      : datos.poolOrigenId == datos.poolDestinoId ? 'Un mensaje viaja entre dos pools distintos' : null;
+    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/mensajes$/))) {
+      if (m === 'POST') {
+        const falla = validarMensaje(b); if (falla) return err(res, 400, falla);
+        const x = { id: ++seq, nombre: b.nombre.trim(), claveCorrelacion: b.claveCorrelacion.trim(), procesoId: +r[1], poolOrigenId: b.poolOrigenId, poolDestinoId: b.poolDestinoId, elementoOrigenId: b.elementoOrigenId ?? null };
+        db.mensajes.push(x); return send(res, 201, x);
+      }
+      return send(res, 200, db.mensajes);
+    }
+    if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/mensajes\/(\d+)$/))) {
+      const x = db.mensajes.find(a => a.id == r[1]);
+      if (!x) return err(res, 400, 'El mensaje no existe o no pertenece a su empresa');
+      if (m === 'PUT') {
+        const falla = validarMensaje(b); if (falla) return err(res, 400, falla);
+        Object.assign(x, { nombre: b.nombre.trim(), claveCorrelacion: b.claveCorrelacion.trim(), poolOrigenId: b.poolOrigenId, poolDestinoId: b.poolDestinoId, elementoOrigenId: b.elementoOrigenId ?? null });
+        return send(res, 200, x);
+      }
+      if (m === 'DELETE') { db.mensajes.splice(db.mensajes.indexOf(x), 1); return send(res, 204); }
+      return send(res, 200, x);
     }
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/comparticion$/))) { if (m === 'PUT') db.comp = b; return send(res, 200, db.comp); }
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/pools$/))) { if (m === 'POST') { const x = { id: ++seq, procesoId: 1, ...b }; db.pools.push(x); return send(res, 201, x); } return send(res, 200, db.pools); }

@@ -1,43 +1,44 @@
-import { Injectable } from '@angular/core';
-import { api } from '../core/api';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { Page } from '../models/page.model';
 import { Actividad, ActividadRequest } from '../models/actividad.model';
 
 @Injectable({ providedIn: 'root' })
 export class ActividadService {
+  private readonly http = inject(HttpClient);
+
   private url(procesoId: number): string {
     return `/v1/procesos/${procesoId}/actividades`;
   }
 
-  list(procesoId: number): Promise<Actividad[]> {
-    return api.get<Actividad[]>(this.url(procesoId)).then(r => r.data);
+  list(procesoId: number): Observable<Actividad[]> {
+    return this.http.get<Actividad[]>(this.url(procesoId));
   }
 
-  get(procesoId: number, id: number): Promise<Actividad> {
-    return api.get<Actividad>(`${this.url(procesoId)}/${id}`).then(r => r.data);
+  buscar(procesoId: number, page: number, size: number): Observable<Page<Actividad>> {
+    return this.http.get<Page<Actividad>>(`${this.url(procesoId)}/buscar`, { params: { page, size } });
   }
 
-  create(procesoId: number, actividad: ActividadRequest): Promise<Actividad> {
-    return api.post<Actividad>(this.url(procesoId), actividad).then(r => r.data);
+  get(procesoId: number, id: number): Observable<Actividad> {
+    return this.http.get<Actividad>(`${this.url(procesoId)}/${id}`);
   }
 
-  update(procesoId: number, id: number, actividad: ActividadRequest): Promise<Actividad> {
-    return api.put<Actividad>(`${this.url(procesoId)}/${id}`, actividad).then(r => r.data);
+  create(procesoId: number, actividad: ActividadRequest): Observable<Actividad> {
+    return this.http.post<Actividad>(this.url(procesoId), actividad);
   }
 
-  mover(
-    procesoId: number,
-    id: number,
-    posicionX: number,
-    posicionY: number
-  ): Promise<Actividad> {
-    return api
-      .post<Actividad>(`${this.url(procesoId)}/${id}/mover`, null, {
-        params: { posicionX, posicionY }
-      })
-      .then(r => r.data);
+  update(procesoId: number, id: number, actividad: ActividadRequest): Observable<Actividad> {
+    return this.http.put<Actividad>(`${this.url(procesoId)}/${id}`, actividad);
   }
 
-  delete(procesoId: number, id: number): Promise<void> {
-    return api.delete(`${this.url(procesoId)}/${id}`).then(() => undefined);
+  mover(procesoId: number, id: number, posicionX: number, posicionY: number): Observable<Actividad> {
+    return this.http.post<Actividad>(`${this.url(procesoId)}/${id}/mover`, null, {
+      params: { posicionX, posicionY }
+    });
+  }
+
+  delete(procesoId: number, id: number): Observable<void> {
+    return this.http.delete<void>(`${this.url(procesoId)}/${id}`);
   }
 }
