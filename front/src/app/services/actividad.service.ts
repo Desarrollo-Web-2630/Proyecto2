@@ -24,6 +24,19 @@ export class ActividadService {
     return api.put<Actividad>(`${this.url(procesoId)}/${id}`, actividad).then(r => r.data);
   }
 
+  mover(
+    procesoId: number,
+    id: number,
+    posicionX: number,
+    posicionY: number
+  ): Promise<Actividad> {
+    return api
+      .post<Actividad>(`${this.url(procesoId)}/${id}/mover`, null, {
+        params: { posicionX, posicionY }
+      })
+      .then(r => r.data);
+  }
+
   delete(procesoId: number, id: number): Promise<void> {
     return api.delete(`${this.url(procesoId)}/${id}`).then(() => undefined);
   }

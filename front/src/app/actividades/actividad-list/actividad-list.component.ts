@@ -13,7 +13,10 @@ import { PoolService } from '../../services/pool.service';
 import { ProcesoService } from '../../services/proceso.service';
 import { RolProcesoService } from '../../services/rol-proceso.service';
 import { SesionService } from '../../services/sesion.service';
-import { PoolDiagramaComponent } from '../../pools/pool-diagrama/pool-diagrama.component';
+import {
+  MovimientoActividad,
+  PoolDiagramaComponent
+} from '../../pools/pool-diagrama/pool-diagrama.component';
 
 // HU-08 a HU-10
 @Component({
@@ -66,7 +69,8 @@ export class ActividadListComponent implements OnInit {
         this.roles.set(roles);
         this.actividades.set(actividades);
         const propietario = pools.find(p => p.tipo === 'PROPIETARIO');
-        this.lanes.set(propietario ? await this.laneService.list(id, propietario.id) : []);
+        const lanes = propietario ? await this.laneService.list(id, propietario.id) : [];
+        this.lanes.set(lanes.sort((a, b) => a.orden - b.orden));
         this.status.set('success');
       })
       .catch(err => {
@@ -77,6 +81,64 @@ export class ActividadListComponent implements OnInit {
 
   nombreLane(laneId: number): string {
     return this.lanes().find(l => l.id === laneId)?.nombre ?? 'Lane no encontrada';
+  }
+
+  moverActividadDiagrama(mov: MovimientoActividad): void {
+    if (!this.puedeEditar()) {
+      return;
+    }
+    const { actividad, laneId, posicionX, posicionY } = mov;
+    if (
+      actividad.laneId === laneId &&
+      actividad.posicionX === posicionX &&
+      actividad.posicionY === posicionY
+    ) {
+      return;
+    }
+    const procesoId = Number(this.procesoId());
+    this.actionError.set('');
+    const previas = this.actividades();
+    this.actividades.update(lista =>
+      lista.map(a => (a.id === actividad.id ? { ...a, laneId, posicionX, posicionY } : a))
+    );
+    const peticion =
+      actividad.laneId === laneId
+        ? this.actividadService.mover(procesoId, actividad.id, posicionX, posicionY)
+        : this.actividadService.update(procesoId, actividad.id, {
+            nombre: actividad.nombre,
+            tipoActividad: actividad.tipoActividad,
+            laneId,
+            posicionX,
+            posicionY
+          });
+    peticion
+      .then(actualizada => {
+        this.actividades.update(lista =>
+          lista.map(a => (a.id === actualizada.id ? actualizada : a))
+        );
+      })
+      .catch(err => {
+        this.actividades.set(previas);
+        this.actionError.set(mensajeDeError(err, 'No fue posible mover la actividad'));
+      });
+  }
+
+  reordenarLanesDiagrama(lanesIds: number[]): void {
+    if (!this.puedeEditar()) {
+      return;
+    }
+    const propietario = this.pools().find(p => p.tipo === 'PROPIETARIO');
+    if (!propietario) {
+      return;
+    }
+    const procesoId = Number(this.procesoId());
+    this.actionError.set('');
+    this.laneService
+      .ordenar(procesoId, propietario.id, lanesIds)
+      .then(lanes => this.lanes.set(lanes.sort((a, b) => a.orden - b.orden)))
+      .catch(err =>
+        this.actionError.set(mensajeDeError(err, 'No fue posible reordenar las lanes'))
+      );
   }
 
   // HU-10: avisa cuántos arcos se borran

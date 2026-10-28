@@ -144,6 +144,14 @@ http.createServer((req, res) => {
         db.actividades.push(a); return send(res, 201, a);
       }
     }
+    if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/actividades\/(\d+)\/mover$/)) && m === 'POST') {
+      const a = db.actividades.find(x => x.id == r[1]);
+      if (!a) return err(res, 400, 'La actividad no existe o no pertenece a su empresa');
+      const px = +(u.searchParams.get('posicionX') ?? -1), py = +(u.searchParams.get('posicionY') ?? -1);
+      if (px < 0 || py < 0) return err(res, 400, 'La posicion de la actividad no puede ser negativa');
+      a.posicionX = px; a.posicionY = py;
+      return send(res, 200, a);
+    }
     if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/actividades\/(\d+)$/))) {
       const a = db.actividades.find(x => x.id == r[1]);
       if (!a) return err(res, 400, 'La actividad no existe o no pertenece a su empresa');
