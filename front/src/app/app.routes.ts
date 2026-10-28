@@ -1,12 +1,15 @@
 import { Routes } from '@angular/router';
 import { LayoutComponent } from './layout/layout.component';
+import { invitadoGuard } from './core/invitado.guard';
 
 export const routes: Routes = [
   {
+    // Landing pública; quien ya tiene sesión pasa directo a /procesos
     path: '',
     pathMatch: 'full',
     title: 'Procesos',
-    loadComponent: () => import('./inicio/inicio.component').then(m => m.InicioComponent)
+    canActivate: [invitadoGuard],
+    loadComponent: () => import('./landing/landing').then(m => m.Landing)
   },
   {
     path: 'login',
