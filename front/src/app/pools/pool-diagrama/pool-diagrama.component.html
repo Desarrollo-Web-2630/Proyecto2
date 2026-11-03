@@ -1,7 +1,7 @@
 @if (editable() && pools().length > 0) {
   <p class="nota">
-    Arrastra las actividades para ubicarlas en el lienzo o moverlas a otra lane. Arrastra el nombre
-    de una lane para cambiar su orden.
+    Arrastra las actividades para moverlas. Pasa el cursor sobre una actividad y arrastra su punto
+    lateral para conectarla con un arco, o haz clic en una flecha para cambiar su texto.
   </p>
 }
 
@@ -14,6 +14,7 @@
           <div
             class="lane"
             [class.lane-activa]="laneActivaId() === lane.id"
+            [style.height.px]="alturaLane(lane.id)"
             (dragover)="permitirSoltarLane($event, lane.id)"
             (dragleave)="salirDeLane(lane.id)"
             (drop)="soltarLane($event, lane.id)"
@@ -31,7 +32,7 @@
             </div>
             <div
               class="lane-actividades"
-              [style.min-height.px]="alturaLane(lane.id)"
+              [style.height.px]="alturaLane(lane.id)"
               (dragover)="permitirSoltarActividad($event, lane.id)"
               (dragleave)="salirDeLane(lane.id)"
               (drop)="soltarActividad($event, lane.id)"
@@ -41,14 +42,28 @@
                   class="actividad"
                   [class.arrastrable]="editable()"
                   [class.arrastrando]="actividadArrastrada()?.id === a.id"
+                  [class.actividad-destino]="actividadDestinoId() === a.id"
                   [attr.draggable]="editable()"
                   [style.left.px]="a.posicionX"
                   [style.top.px]="a.posicionY"
                   (dragstart)="iniciarArrastreActividad($event, a)"
+                  (dragover)="permitirSoltarArco($event, a)"
+                  (dragleave)="salirDeActividad($event, a.id)"
+                  (drop)="soltarArco($event, a)"
                   (dragend)="finalizarArrastre()"
                 >
                   <span>{{ a.nombre }}</span>
                   <small>{{ a.tipoActividad }}</small>
+                  @if (editable()) {
+                    <span
+                      class="conector-arco"
+                      draggable="true"
+                      title="Arrastra hacia otra actividad para crear un arco"
+                      (mousedown)="prepararConector($event)"
+                      (dragstart)="iniciarConexionArco($event, a)"
+                      (dragend)="finalizarArrastre()"
+                    ></span>
+                  }
                 </div>
               }
             </div>
@@ -56,13 +71,72 @@
         } @empty {
           <p class="vacio">Sin lanes</p>
         }
+
+        @if (arcosVisuales().length > 0 || trazoArcoEnCurso()) {
+          <svg
+            class="capa-arcos"
+            [style.height.px]="alturaTotalLanes()"
+            aria-hidden="true"
+          >
+            <defs>
+              <marker
+                id="flecha-arco"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#49364e" />
+              </marker>
+            </defs>
+            @for (item of arcosVisuales(); track item.arco.id) {
+              <g
+                class="arco-grupo"
+                [class.arco-editable]="editable()"
+                (click)="solicitarTextoArco(item.arco)"
+              >
+                <title>
+                  {{ editable() ? 'Haz clic para cambiar el texto del arco' : item.etiqueta }}
+                </title>
+                <path class="arco-area-clic" [attr.d]="item.path" />
+                <path
+                  class="arco-linea"
+                  [attr.d]="item.path"
+                  marker-end="url(#flecha-arco)"
+                />
+                @if (item.etiqueta) {
+                  <text
+                    class="arco-texto"
+                    [attr.x]="item.labelX"
+                    [attr.y]="item.labelY"
+                    text-anchor="middle"
+                  >
+                    {{ item.etiqueta }}
+                  </text>
+                }
+              </g>
+            }
+            @if (trazoArcoEnCurso(); as previewPath) {
+              <path
+                class="arco-linea arco-en-curso"
+                [attr.d]="previewPath"
+                marker-end="url(#flecha-arco)"
+              />
+            }
+          </svg>
+        }
       </div>
     } @else {
       <div class="caja-negra">Participante externo</div>
     }
   </div>
 } @empty {
-  <p class="nota">El proceso aún no tiene pools.</p>
+  <div class="tablero-vacio">
+    <p>Lienzo del proceso en blanco</p>
+    <small>Aún no se han creado pools ni elementos en este proceso.</small>
+  </div>
 }
 
 @if (actividadesSinLane().length > 0) {

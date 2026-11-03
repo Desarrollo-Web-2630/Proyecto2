@@ -12,7 +12,53 @@
   writing-mode: vertical-rl;
   transform: rotate(180deg);
 }
-.pool-lanes { flex: 1; }
+.pool-lanes {
+  position: relative;
+  flex: 1;
+}
+.capa-arcos {
+  position: absolute;
+  top: 0;
+  left: 140px;
+  width: calc(100% - 140px);
+  pointer-events: none;
+  overflow: visible;
+  z-index: 3;
+}
+.arco-area-clic {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+}
+.arco-editable {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.arco-editable .arco-texto {
+  pointer-events: all;
+}
+.arco-editable:hover .arco-linea {
+  stroke: var(--malva);
+  stroke-width: 2.5;
+}
+.arco-linea {
+  fill: none;
+  stroke: var(--ciruela);
+  stroke-width: 2;
+}
+.arco-en-curso {
+  stroke: var(--malva);
+  stroke-dasharray: 6 4;
+}
+.arco-texto {
+  font-size: 0.75rem;
+  font-weight: 600;
+  fill: var(--ciruela);
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
 .lane {
   display: flex;
   min-height: 130px;
@@ -31,6 +77,7 @@
   flex-direction: column;
   justify-content: center;
   width: 140px;
+  flex-shrink: 0;
   padding: 0.5rem;
   border-right: 1px solid var(--ciruela);
   font-weight: 600;
@@ -46,21 +93,77 @@
 }
 .actividad {
   position: absolute;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  min-width: 120px;
-  max-width: 200px;
-  padding: 0.5rem 0.75rem;
+  justify-content: center;
+  gap: 0.1rem;
+  width: 140px;
+  min-height: 52px;
+  padding: 0.45rem 0.65rem;
   background: #fff;
   border: 2px solid var(--malva);
   border-radius: 0.5rem;
   box-shadow: 0 2px 4px rgb(0 0 0 / 8%);
   user-select: none;
 }
+.actividad.actividad-destino {
+  border-color: var(--salvia);
+  background: #f2f7f0;
+  box-shadow: 0 0 0 3px rgb(149 163 127 / 35%);
+}
+.actividad span {
+  font-size: 0.88rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
 .actividad small {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: #6b5f6e;
+}
+.conector-arco {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--ciruela);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  cursor: crosshair;
+}
+.actividad:hover .conector-arco {
+  opacity: 1;
+}
+.conector-arco:hover {
+  background: var(--salvia);
+  transform: translateY(-50%) scale(1.2);
+}
+.tablero-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 240px;
+  margin-bottom: 1rem;
+  padding: 2rem;
+  background-color: #fff;
+  background-image: radial-gradient(#d5cbd8 1px, transparent 1px);
+  background-size: 16px 16px;
+  border: 2px dashed #bfb3c4;
+  border-radius: 0.5rem;
+  color: #6b5f6e;
+  text-align: center;
+}
+.tablero-vacio p {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ciruela);
 }
 .arrastrable { cursor: grab; }
 .arrastrable:active { cursor: grabbing; }

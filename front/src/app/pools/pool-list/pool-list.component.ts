@@ -5,18 +5,22 @@ import { RouterLink } from '@angular/router';
 import { Observable, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { mensajeDeError } from '../../core/api-error';
 import { Actividad } from '../../models/actividad.model';
+import { Arco } from '../../models/arco.model';
 import { Lane } from '../../models/lane.model';
 import { Pool, TipoPool } from '../../models/pool.model';
 import { Proceso } from '../../models/proceso.model';
 import { RolProceso } from '../../models/rol-proceso.model';
 import { ActividadService } from '../../services/actividad.service';
+import { ArcoService } from '../../services/arco.service';
 import { LaneService } from '../../services/lane.service';
 import { PoolService } from '../../services/pool.service';
 import { ProcesoService } from '../../services/proceso.service';
 import { RolProcesoService } from '../../services/rol-proceso.service';
 import { SesionService } from '../../services/sesion.service';
 import {
+  EdicionArcoDiagrama,
   MovimientoActividad,
+  NuevoArcoDiagrama,
   PoolDiagramaComponent
 } from '../pool-diagrama/pool-diagrama.component';
 
@@ -33,6 +37,7 @@ export class PoolListComponent implements OnInit {
   private readonly poolService = inject(PoolService);
   private readonly laneService = inject(LaneService);
   private readonly actividadService = inject(ActividadService);
+  private readonly arcoService = inject(ArcoService);
   private readonly rolService = inject(RolProcesoService);
   private readonly sesion = inject(SesionService);
   private readonly destroyRef = inject(DestroyRef);
@@ -51,6 +56,7 @@ export class PoolListComponent implements OnInit {
   protected readonly pools = signal<Pool[]>([]);
   protected readonly lanes = signal<Lane[]>([]);
   protected readonly actividades = signal<Actividad[]>([]);
+  protected readonly arcos = signal<Arco[]>([]);
   protected readonly roles = signal<RolProceso[]>([]);
   protected readonly message = signal('');
   protected readonly actionError = signal('');
@@ -97,20 +103,22 @@ export class PoolListComponent implements OnInit {
       });
   }
 
-  // Trae pools, lanes del pool propietario y actividades
+  // Trae pools, lanes del pool propietario, actividades y arcos
   private load(): Observable<void> {
     return forkJoin({
       pools: this.poolService.list(this.id),
-      actividades: this.actividadService.list(this.id)
+      actividades: this.actividadService.list(this.id),
+      arcos: this.arcoService.list(this.id)
     }).pipe(
-      switchMap(({ pools, actividades }) => {
+      switchMap(({ pools, actividades, arcos }) => {
         const propietario = pools.find(p => p.tipo === 'PROPIETARIO');
         const lanes$ = propietario ? this.laneService.list(this.id, propietario.id) : of([] as Lane[]);
-        return lanes$.pipe(map(lanes => ({ pools, actividades, propietario, lanes })));
+        return lanes$.pipe(map(lanes => ({ pools, actividades, arcos, propietario, lanes })));
       }),
-      map(({ pools, actividades, propietario, lanes }) => {
+      map(({ pools, actividades, arcos, propietario, lanes }) => {
         this.pools.set(pools);
         this.actividades.set(actividades);
+        this.arcos.set(arcos);
         this.lanes.set(lanes.sort((a, b) => a.orden - b.orden));
         if (!propietario) {
           this.poolForm.controls.tipo.setValue('PROPIETARIO');
@@ -281,6 +289,47 @@ export class PoolListComponent implements OnInit {
         this.actionError.set(mensajeDeError(err, 'No fue posible mover la actividad'));
       }
     });
+  }
+
+  crearArcoDiagrama(datos: NuevoArcoDiagrama): void {
+    if (this.soloLectura()) {
+      return;
+    }
+    this.actionError.set('');
+    this.arcoService
+      .create(this.id, {
+        origenId: datos.origenId,
+        destinoId: datos.destinoId,
+        nombre: null,
+        condicion: null
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: nuevo => this.arcos.update(lista => [...lista, nuevo]),
+        error: err => this.actionError.set(mensajeDeError(err, 'No fue posible crear el arco'))
+      });
+  }
+
+  editarArcoDiagrama(datos: EdicionArcoDiagrama): void {
+    if (this.soloLectura() || datos.arco.origenId === null || datos.arco.destinoId === null) {
+      return;
+    }
+    this.actionError.set('');
+    this.arcoService
+      .update(this.id, datos.arco.id, {
+        origenId: datos.arco.origenId,
+        destinoId: datos.arco.destinoId,
+        nombre: datos.nombre,
+        condicion: datos.arco.condicion
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: actualizado =>
+          this.arcos.update(lista =>
+            lista.map(a => (a.id === actualizado.id ? actualizado : a))
+          ),
+        error: err => this.actionError.set(mensajeDeError(err, 'No fue posible actualizar el arco'))
+      });
   }
 
   eliminarLane(lane: Lane): void {
