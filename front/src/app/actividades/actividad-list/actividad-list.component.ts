@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { EMPTY, forkJoin, map, of, switchMap } from 'rxjs';
 import { mensajeDeError } from '../../core/api-error';
 import { Actividad } from '../../models/actividad.model';
+import { Arco } from '../../models/arco.model';
 import { Lane } from '../../models/lane.model';
 import { Pool } from '../../models/pool.model';
 import { Proceso } from '../../models/proceso.model';
@@ -16,7 +17,9 @@ import { ProcesoService } from '../../services/proceso.service';
 import { RolProcesoService } from '../../services/rol-proceso.service';
 import { SesionService } from '../../services/sesion.service';
 import {
+  EdicionArcoDiagrama,
   MovimientoActividad,
+  NuevoArcoDiagrama,
   PoolDiagramaComponent
 } from '../../pools/pool-diagrama/pool-diagrama.component';
 
@@ -45,16 +48,16 @@ export class ActividadListComponent implements OnInit {
   protected readonly lanes = signal<Lane[]>([]);
   protected readonly roles = signal<RolProceso[]>([]);
   protected readonly actividades = signal<Actividad[]>([]);
+  protected readonly arcos = signal<Arco[]>([]);
   protected readonly filas = signal<Actividad[]>([]);
   protected readonly pagina = signal(0);
   protected readonly totalPaginas = signal(0);
   protected readonly message = signal('');
   protected readonly actionError = signal('');
 
-  private readonly propia = computed(() => this.proceso()?.empresaId === this.sesion.usuario()?.empresaId);
   // Eliminar es solo para el administrador
-  protected readonly puedeEditar = computed(() => this.propia() && this.sesion.usuario()?.rolAcceso !== 'LECTURA');
-  protected readonly puedeEliminar = computed(() => this.propia() && this.sesion.esAdmin());
+  protected readonly puedeEditar = computed(() => this.sesion.usuario()?.rolAcceso !== 'LECTURA');
+  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
 
   private readonly tamano = 10;
 
@@ -70,6 +73,7 @@ export class ActividadListComponent implements OnInit {
       pools: this.poolService.list(id),
       roles: this.rolService.list(),
       actividades: this.actividadService.list(id),
+      arcos: this.arcoService.list(id),
       filas: this.actividadService.buscar(id, this.pagina(), this.tamano)
     })
       .pipe(
@@ -81,11 +85,12 @@ export class ActividadListComponent implements OnInit {
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: ({ proceso, pools, roles, actividades, filas, lanes }) => {
+        next: ({ proceso, pools, roles, actividades, arcos, filas, lanes }) => {
           this.proceso.set(proceso);
           this.pools.set(pools);
           this.roles.set(roles);
           this.actividades.set(actividades);
+          this.arcos.set(arcos);
           this.filas.set(filas.content);
           this.totalPaginas.set(filas.totalPages);
           this.lanes.set(lanes.sort((a, b) => a.orden - b.orden));
@@ -184,6 +189,49 @@ export class ActividadListComponent implements OnInit {
       });
   }
 
+  crearArcoDiagrama(datos: NuevoArcoDiagrama): void {
+    if (!this.puedeEditar()) {
+      return;
+    }
+    const procesoId = Number(this.procesoId());
+    this.actionError.set('');
+    this.arcoService
+      .create(procesoId, {
+        origenId: datos.origenId,
+        destinoId: datos.destinoId,
+        nombre: null,
+        condicion: null
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: nuevo => this.arcos.update(lista => [...lista, nuevo]),
+        error: err => this.actionError.set(mensajeDeError(err, 'No fue posible crear el arco'))
+      });
+  }
+
+  editarArcoDiagrama(datos: EdicionArcoDiagrama): void {
+    if (!this.puedeEditar() || datos.arco.origenId === null || datos.arco.destinoId === null) {
+      return;
+    }
+    const procesoId = Number(this.procesoId());
+    this.actionError.set('');
+    this.arcoService
+      .update(procesoId, datos.arco.id, {
+        origenId: datos.arco.origenId,
+        destinoId: datos.arco.destinoId,
+        nombre: datos.nombre,
+        condicion: datos.arco.condicion
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: actualizado =>
+          this.arcos.update(lista =>
+            lista.map(a => (a.id === actualizado.id ? actualizado : a))
+          ),
+        error: err => this.actionError.set(mensajeDeError(err, 'No fue posible actualizar el arco'))
+      });
+  }
+
   // HU-10: avisa cuántos arcos se borran
   remove(actividad: Actividad): void {
     this.actionError.set('');
@@ -203,6 +251,9 @@ export class ActividadListComponent implements OnInit {
       .subscribe({
         next: () => {
           this.actividades.update(lista => lista.filter(a => a.id !== actividad.id));
+          this.arcos.update(lista =>
+            lista.filter(a => a.origenId !== actividad.id && a.destinoId !== actividad.id)
+          );
           this.cargarFilas();
         },
         error: err => this.actionError.set(mensajeDeError(err, 'No fue posible eliminar la actividad'))

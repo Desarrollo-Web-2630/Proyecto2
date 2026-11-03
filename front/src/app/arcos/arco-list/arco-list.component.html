@@ -20,6 +20,19 @@
       <p class="nota" role="status">{{ aviso() }}</p>
     }
 
+    <app-pool-diagrama
+      [pools]="pools()"
+      [lanes]="lanes()"
+      [actividades]="actividades()"
+      [arcos]="arcos()"
+      [roles]="roles()"
+      [editable]="puedeEditar()"
+      (moverActividad)="moverActividadDiagrama($event)"
+      (reordenarLanes)="reordenarLanesDiagrama($event)"
+      (crearArco)="crearArcoDiagrama($event)"
+      (editarArco)="editarArcoDiagrama($event)"
+    />
+
     <table>
       <thead>
         <tr>
