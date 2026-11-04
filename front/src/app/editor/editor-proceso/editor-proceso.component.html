@@ -1,0 +1,263 @@
+@switch (status()) {
+  @case ('loading') {
+    <p class="cargando">Cargando el editor…</p>
+  }
+  @case ('error') {
+    <p class="error" role="alert">{{ mensajeCarga() }}</p>
+    <a routerLink="/procesos">Volver a procesos</a>
+  }
+  @case ('success') {
+    <section class="editor">
+      <header class="barra">
+        <div>
+          <a class="volver" routerLink="/procesos">← Procesos</a>
+          <h2>{{ proceso()?.nombre }}</h2>
+        </div>
+        <span class="etiqueta">{{ proceso()?.estado }}</span>
+        @if (!editable()) {
+          <span class="nota">Modo solo lectura</span>
+        }
+        <nav class="listas">
+          <span class="nota">Ver como lista:</span>
+          <a [routerLink]="['/procesos', procesoId(), 'pools']">Pools</a>
+          <a [routerLink]="['/procesos', procesoId(), 'actividades']">Actividades</a>
+          <a [routerLink]="['/procesos', procesoId(), 'gateways']">Gateways</a>
+          <a [routerLink]="['/procesos', procesoId(), 'arcos']">Arcos</a>
+          <a [routerLink]="['/procesos', procesoId(), 'mensajes']">Mensajes</a>
+        </nav>
+      </header>
+
+      @if (error()) {
+        <p class="mensaje error" role="alert">{{ error() }}</p>
+      }
+      @if (aviso()) {
+        <p class="mensaje aviso" role="status">{{ aviso() }}</p>
+      }
+
+      <div class="cuerpo">
+        <aside class="paleta" aria-label="Paleta de elementos">
+          @if (editable()) {
+            <p class="ayuda">Arrastra un elemento y suéltalo sobre el lienzo.</p>
+            @for (g of grupos; track g.titulo) {
+              <h3>{{ g.titulo }}</h3>
+              @for (item of g.items; track item.clave) {
+                <div
+                  class="item"
+                  draggable="true"
+                  [title]="item.ayuda"
+                  (dragstart)="empezarArrastre($event, item.clave)"
+                  (dragend)="terminarArrastre()"
+                >
+                  <span class="icono {{ item.forma }}"></span>
+                  <span>{{ item.texto }}</span>
+                </div>
+              }
+            }
+          } @else {
+            <p class="ayuda">Tu rol solo permite consultar el proceso.</p>
+          }
+        </aside>
+
+        <div class="lienzo">
+          <app-lienzo-proceso
+            [pools]="pools()"
+            [lanes]="lanes()"
+            [actividades]="actividades()"
+            [gateways]="gateways()"
+            [arcos]="arcos()"
+            [mensajes]="mensajes()"
+            [roles]="roles()"
+            [editable]="editable()"
+            [seleccion]="seleccion()"
+            [itemPaleta]="itemPaleta()"
+            (soltarPaleta)="alSoltarPaleta($event)"
+            (moverActividad)="alMoverActividad($event)"
+            (moverGateway)="alMoverGateway($event)"
+            (reordenarLanes)="alReordenar($event)"
+            (crearArco)="alCrearArco($event)"
+            (crearMensaje)="alCrearMensaje($event)"
+            (seleccionar)="seleccion.set($event)"
+          />
+        </div>
+
+        <aside class="propiedades" aria-label="Propiedades">
+          @if (seleccion(); as s) {
+            <h3>{{ textoSeleccion() }}</h3>
+            <form [formGroup]="props" (ngSubmit)="guardarPropiedades()">
+              @if (s.tipo === 'arco') {
+                <p class="nota">De «{{ nombreNodo(arcoOrigen()) }}» a «{{ nombreNodo(arcoDestino()) }}»</p>
+              }
+              @if (s.tipo === 'mensaje') {
+                <p class="nota">Enviado a «{{ nombrePool(mensajeDestino()) }}»</p>
+              }
+              <label>
+                {{ s.tipo === 'arco' ? 'Texto del arco (opcional)' : 'Nombre' }}
+                <input formControlName="nombre" [readOnly]="!editable()">
+              </label>
+              @if (props.controls.nombre.touched && props.controls.nombre.invalid) {
+                <small class="error">El nombre es obligatorio.</small>
+              }
+              @if (s.tipo === 'actividad') {
+                <label>
+                  Tipo
+                  <select formControlName="tipo">
+                    @for (t of tiposActividad; track t.valor) {
+                      <option [value]="t.valor">{{ t.texto }}</option>
+                    }
+                  </select>
+                </label>
+              }
+              @if (s.tipo === 'gateway') {
+                <label>
+                  Tipo
+                  <select formControlName="tipo">
+                    @for (t of tiposGateway; track t.valor) {
+                      <option [value]="t.valor">{{ t.texto }}</option>
+                    }
+                  </select>
+                </label>
+              }
+              @if (s.tipo === 'arco') {
+                <label>
+                  Condición (opcional)
+                  <input formControlName="condicion" placeholder="Por ejemplo: aprobado" [readOnly]="!editable()">
+                </label>
+              }
+              @if (s.tipo === 'mensaje') {
+                <label>
+                  Correlación
+                  <input formControlName="clave" placeholder="Por ejemplo: n.º de solicitud" [readOnly]="!editable()">
+                </label>
+              }
+              @if (s.tipo === 'lane') {
+                <label>
+                  Rol responsable
+                  <select formControlName="rolId">
+                    @for (r of roles(); track r.id) {
+                      <option [ngValue]="r.id">{{ r.nombre }}</option>
+                    }
+                  </select>
+                </label>
+              }
+              @if (editable()) {
+                <div class="botones">
+                  <button type="submit">Guardar</button>
+                  @if (puedeEliminar()) {
+                    <button type="button" class="peligro" (click)="eliminar()">Eliminar</button>
+                  }
+                </div>
+              }
+            </form>
+          } @else {
+            <h3>Propiedades</h3>
+            <p class="ayuda">Haz clic en un elemento del lienzo para ver y editar sus datos.</p>
+            <h3>Cómo se usa</h3>
+            <ol class="pasos">
+              <li>Arrastra el pool de la empresa al lienzo.</li>
+              <li>Agrega lanes, uno por cada rol responsable.</li>
+              <li>Arrastra actividades y gateways dentro de un lane.</li>
+              <li>Para conectar, arrastra el punto que aparece a la derecha de un elemento hasta otro.</li>
+              <li>Para enviar un mensaje, arrastra ese punto desde una actividad hasta un participante externo.</li>
+            </ol>
+          }
+        </aside>
+      </div>
+    </section>
+
+    @if (dialogo(); as d) {
+      <div class="fondo" tabindex="-1" (keydown.escape)="cerrarDialogo()">
+        <button type="button" class="cerrar-fondo" aria-label="Cerrar" tabindex="-1" (click)="cerrarDialogo()"></button>
+        <form
+          class="dialogo"
+          role="dialog"
+          aria-modal="true"
+          [attr.aria-label]="titulo(d)"
+          [formGroup]="form"
+          (ngSubmit)="guardarDialogo()"
+        >
+          <h3>{{ titulo(d) }}</h3>
+
+          @if (d.tipo === 'mensaje') {
+            <p class="nota">
+              Desde «{{ nombreNodo(d.origenId) }}» hacia «{{ nombrePool(d.poolDestinoId) }}»
+            </p>
+          }
+          @if (d.tipo === 'arco') {
+            <p class="nota">Desde «{{ nombreNodo(d.origenId) }}» hacia «{{ nombreNodo(d.destinoId) }}»</p>
+          }
+
+          <label>
+            @switch (d.tipo) {
+              @case ('arco') { Texto del arco (opcional) }
+              @case ('mensaje') { Nombre del mensaje }
+              @default { Nombre }
+            }
+            <input formControlName="nombre">
+          </label>
+          @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
+            <small class="error">El nombre es obligatorio.</small>
+          }
+
+          @if (d.tipo === 'lane') {
+            @if (roles().length === 0) {
+              <p class="error">Aún no hay roles de proceso. Crea uno en la sección Roles y vuelve.</p>
+            } @else {
+              <label>
+                Rol responsable
+                <select formControlName="rolId">
+                  @for (r of roles(); track r.id) {
+                    <option [ngValue]="r.id">{{ r.nombre }}</option>
+                  }
+                </select>
+              </label>
+            }
+          }
+
+          @if (d.tipo === 'actividad') {
+            <label>
+              Tipo de actividad
+              <select formControlName="tipo">
+                @for (t of tiposActividad; track t.valor) {
+                  <option [value]="t.valor">{{ t.texto }}</option>
+                }
+              </select>
+            </label>
+          }
+
+          @if (d.tipo === 'gateway') {
+            <label>
+              Tipo de gateway
+              <select formControlName="tipo">
+                @for (t of tiposGateway; track t.valor) {
+                  <option [value]="t.valor">{{ t.texto }}</option>
+                }
+              </select>
+            </label>
+          }
+
+          @if (d.tipo === 'mensaje') {
+            <label>
+              Correlación
+              <input formControlName="clave" placeholder="Por ejemplo: n.º de solicitud">
+            </label>
+            @if (form.controls.clave.touched && form.controls.clave.invalid) {
+              <small class="error">Indica qué dato identifica el caso.</small>
+            }
+          }
+
+          @if (origenArcoEsGateway()) {
+            <label>
+              Condición de esta salida
+              <input formControlName="condicion" placeholder="Por ejemplo: Sí / No">
+            </label>
+          }
+
+          <div class="botones">
+            <button type="submit" [disabled]="guardando() || (d.tipo === 'lane' && roles().length === 0)">Guardar</button>
+            <button type="button" class="secundario" (click)="cerrarDialogo()">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    }
+  }
+}

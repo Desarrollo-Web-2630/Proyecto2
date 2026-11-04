@@ -1,0 +1,163 @@
+<div class="marco">
+  <div
+    class="tablero"
+    [class.activo]="tableroActivo()"
+    [style.width.px]="anchoTablero()"
+    [style.height.px]="alturaTablero()"
+    (dragover)="sobreTablero($event)"
+    (dragleave)="salirDelTablero($event)"
+    (drop)="soltarEnTablero($event)"
+    (click)="limpiarSeleccion()"
+    (keydown.escape)="limpiarSeleccion()"
+    tabindex="-1"
+  >
+    @if (pools().length === 0) {
+      <div class="vacio">
+        <strong>El lienzo está vacío</strong>
+        <span>Arrastra «Pool de la empresa» desde la paleta y suéltalo aquí para empezar.</span>
+      </div>
+    }
+
+    @if (propietario(); as pool) {
+      <div
+        class="pool"
+        [class.seleccionado]="esSeleccion('pool', pool.id)"
+        [style.height.px]="alturaPropietario()"
+        (click)="elegir($event, 'pool', pool.id)"
+        (keydown.enter)="elegir($event, 'pool', pool.id)"
+        tabindex="0"
+      >
+        <div class="pool-titulo">{{ pool.nombre }}</div>
+      </div>
+
+      @for (lane of lanes(); track lane.id) {
+        <div
+          class="lane"
+          [class.destino]="laneActivaId() === lane.id"
+          [style.top.px]="topLane(lane.id)"
+          [style.height.px]="alturaLane(lane.id)"
+        >
+          <div
+            class="lane-titulo"
+            [class.seleccionado]="esSeleccion('lane', lane.id)"
+            [attr.draggable]="editable() && lanes().length > 1"
+            title="Arrastra para cambiar el orden"
+            (dragstart)="iniciarLane($event, lane.id)"
+            (dragend)="finalizarArrastre()"
+            (click)="elegir($event, 'lane', lane.id)"
+            (keydown.enter)="elegir($event, 'lane', lane.id)"
+            tabindex="0"
+          >
+            <strong>{{ lane.nombre }}</strong>
+            <span>{{ nombreRol(lane.rolProcesoId) }}</span>
+          </div>
+        </div>
+      } @empty {
+        <div class="sin-lanes">Arrastra un «Lane» de la paleta para crear la primera división del pool.</div>
+      }
+
+      @for (a of actividades(); track a.id) {
+        <div
+          class="actividad"
+          [class.seleccionado]="esSeleccion('actividad', a.id)"
+          [class.destino]="nodoDestinoId() === a.id"
+          [style.left.px]="desplazamiento + a.posicionX"
+          [style.top.px]="topActividad(a)"
+          [attr.draggable]="editable()"
+          (dragstart)="iniciarActividad($event, a)"
+          (dragend)="finalizarArrastre()"
+          (click)="elegir($event, 'actividad', a.id)"
+          (keydown.enter)="elegir($event, 'actividad', a.id)"
+          tabindex="0"
+        >
+          <span>{{ a.nombre }}</span>
+          @if (editable()) {
+            <i
+              class="conector"
+              draggable="true"
+              title="Arrastra hasta otro elemento para conectar"
+              (dragstart)="iniciarConector($event, a.id)"
+              (dragend)="finalizarArrastre()"
+            ></i>
+          }
+        </div>
+      }
+
+      @for (g of gateways(); track g.id) {
+        <div
+          class="gateway"
+          [class.seleccionado]="esSeleccion('gateway', g.id)"
+          [class.destino]="nodoDestinoId() === g.id"
+          [style.left.px]="desplazamiento + g.posicionX"
+          [style.top.px]="g.posicionY"
+          [attr.draggable]="editable()"
+          [title]="g.nombre"
+          (dragstart)="iniciarGateway($event, g)"
+          (dragend)="finalizarArrastre()"
+          (click)="elegir($event, 'gateway', g.id)"
+          (keydown.enter)="elegir($event, 'gateway', g.id)"
+          tabindex="0"
+        >
+          <span class="rombo"><b>{{ simboloGateway(g.tipo) }}</b></span>
+          <small>{{ g.nombre }}</small>
+          @if (editable()) {
+            <i
+              class="conector"
+              draggable="true"
+              title="Arrastra hasta otro elemento para conectar"
+              (dragstart)="iniciarConector($event, g.id)"
+              (dragend)="finalizarArrastre()"
+            ></i>
+          }
+        </div>
+      }
+    }
+
+    @for (pool of externos(); track pool.id; let i = $index) {
+      <div
+        class="externo"
+        [class.destino]="externoActivoId() === pool.id"
+        [class.seleccionado]="esSeleccion('pool', pool.id)"
+        [style.top.px]="yExterno(i)"
+        (click)="elegir($event, 'pool', pool.id)"
+        (keydown.enter)="elegir($event, 'pool', pool.id)"
+        tabindex="0"
+      >
+        <strong>{{ pool.nombre }}</strong>
+        <small>{{ pool.tipo === 'CLIENTE' ? 'Cliente' : pool.tipo === 'PROVEEDOR' ? 'Proveedor' : 'Sistema externo' }}</small>
+      </div>
+    }
+
+    <svg class="capa" [attr.width]="anchoTablero()" [attr.height]="alturaTablero()">
+      <defs>
+        <marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#49364e" />
+        </marker>
+        <marker id="flecha-mensaje" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#7f9ca3" />
+        </marker>
+      </defs>
+      <g [attr.transform]="'translate(' + desplazamiento + ',0)'">
+        @for (t of arcosVisuales(); track t.clave) {
+          <g class="trazo" [class.seleccionado]="esSeleccion('arco', t.id)" tabindex="0" (click)="elegir($event, 'arco', t.id)" (keydown.enter)="elegir($event, 'arco', t.id)">
+            <path class="zona" [attr.d]="t.path" />
+            <path class="linea" [attr.d]="t.path" marker-end="url(#flecha)" />
+            @if (t.etiqueta) {
+              <text [attr.x]="t.etiquetaX" [attr.y]="t.etiquetaY" text-anchor="middle">{{ t.etiqueta }}</text>
+            }
+          </g>
+        }
+        @for (t of mensajesVisuales(); track t.clave) {
+          <g class="trazo mensaje" [class.seleccionado]="esSeleccion('mensaje', t.id)" tabindex="0" (click)="elegir($event, 'mensaje', t.id)" (keydown.enter)="elegir($event, 'mensaje', t.id)">
+            <path class="zona" [attr.d]="t.path" />
+            <path class="linea" [attr.d]="t.path" marker-end="url(#flecha-mensaje)" />
+            <text [attr.x]="t.etiquetaX" [attr.y]="t.etiquetaY">{{ t.etiqueta }}</text>
+          </g>
+        }
+        @if (trazoEnCurso(); as path) {
+          <path class="linea en-curso" [attr.d]="path" />
+        }
+      </g>
+    </svg>
+  </div>
+</div>

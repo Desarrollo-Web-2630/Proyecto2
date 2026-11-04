@@ -179,7 +179,7 @@ http.createServer((req, res) => {
       if (m === 'POST') {
         if (!b.nombre?.trim()) return err(res, 400, 'El nombre del gateway es obligatorio');
         if (!b.tipo) return err(res, 400, 'El tipo de gateway es obligatorio');
-        const g = { id: ++seq, nombre: b.nombre.trim(), tipo: b.tipo, procesoId: +r[1] };
+        const g = { id: ++seq, nombre: b.nombre.trim(), tipo: b.tipo, posicionX: Math.max(b.posicionX ?? 0, 0), posicionY: Math.max(b.posicionY ?? 0, 0), procesoId: +r[1] };
         db.gateways.push(g); return send(res, 201, g);
       }
       return send(res, 200, db.gateways);
@@ -187,12 +187,18 @@ http.createServer((req, res) => {
     if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/gateways\/(\d+)$/))) {
       const g = db.gateways.find(x => x.id == r[1]);
       if (!g) return err(res, 400, 'El gateway no existe o no pertenece a su empresa');
-      if (m === 'PUT') { Object.assign(g, { nombre: b.nombre.trim(), tipo: b.tipo }); return send(res, 200, g); }
+      if (m === 'PUT') { Object.assign(g, { nombre: b.nombre.trim(), tipo: b.tipo }); if (b.posicionX != null && b.posicionY != null) Object.assign(g, { posicionX: b.posicionX, posicionY: b.posicionY }); return send(res, 200, g); }
       if (m === 'DELETE') {
         db.arcos = db.arcos.filter(x => x.origenId !== g.id && x.destinoId !== g.id);
         db.gateways.splice(db.gateways.indexOf(g), 1); return send(res, 204);
       }
       return send(res, 200, g);
+    }
+    if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/elementos\/(\d+)\/posicion$/)) && m === 'PATCH') {
+      const el = db.gateways.find(x => x.id == r[1]) ?? db.actividades.find(x => x.id == r[1]);
+      if (!el) return err(res, 400, 'El elemento no existe');
+      el.posicionX = +(u.searchParams.get('x') ?? 0); el.posicionY = +(u.searchParams.get('y') ?? 0);
+      return send(res, 204);
     }
     // Arcos
     const elemento = (id) => db.actividades.find(x => x.id == id) ?? db.gateways.find(x => x.id == id);

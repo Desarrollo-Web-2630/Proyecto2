@@ -81,3 +81,10 @@ a { color: var(--ciruela); }
 @media (max-width: 640px) {
   table { display: block; overflow-x: auto; }
 }
+
+main:has(app-editor-proceso) { max-width: none; }
+
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--malva); outline-offset: 1px; border-color: var(--malva); }
+form { border: 1px solid #e0d8e2; gap: 0.6rem; }
+label { font-size: 0.9rem; color: #4a3e4d; }
+button:hover:not(:disabled), .boton:hover { filter: brightness(1.12); }
