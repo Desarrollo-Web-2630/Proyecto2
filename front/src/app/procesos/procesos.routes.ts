@@ -17,6 +17,11 @@ export const PROCESOS_ROUTES: Routes = [
     loadComponent: () => import('./proceso-form/proceso-form.component').then(m => m.ProcesoFormComponent)
   },
   {
+    path: ':procesoId/editor',
+    title: 'Editor del proceso',
+    loadComponent: () => import('../editor/editor-proceso/editor-proceso.component').then(m => m.EditorProcesoComponent)
+  },
+  {
     path: ':procesoId/pools',
     title: 'Pools y lanes',
     loadComponent: () => import('../pools/pool-list/pool-list.component').then(m => m.PoolListComponent)

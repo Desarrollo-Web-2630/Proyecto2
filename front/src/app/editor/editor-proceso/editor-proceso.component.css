@@ -1,0 +1,100 @@
+:host { display: block; }
+
+.editor { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.barra { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.barra h2 { margin: 0; }
+.barra .listas { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-left: auto; }
+.volver { font-size: 0.9rem; text-decoration: none; }
+
+.mensaje { margin: 0; padding: 0.6rem 0.9rem; border-radius: 0.375rem; }
+.mensaje.error { background: #f6e7e1; }
+.mensaje.aviso { background: #f1f0e0; color: #4f5a3d; }
+
+.cuerpo {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr) 270px;
+  gap: 0.75rem;
+  height: calc(100vh - 190px);
+  min-height: 460px;
+}
+
+.paleta, .propiedades, .lienzo {
+  background: #fff;
+  border: 1px solid #e0d8e2;
+  border-radius: 0.5rem;
+}
+.paleta, .propiedades { padding: 0.9rem; overflow-y: auto; }
+.lienzo { overflow: hidden; }
+
+h3 { margin: 0.9rem 0 0.4rem; font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; color: #6b5f6e; }
+h3:first-child { margin-top: 0; }
+.ayuda { margin: 0 0 0.5rem; color: #6b5f6e; font-size: 0.9rem; }
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  background: #f6f1f7;
+  border: 1px solid #e0d8e2;
+  border-radius: 0.375rem;
+  font-size: 0.9rem;
+  cursor: grab;
+  user-select: none;
+}
+.item:hover { border-color: var(--malva); background: #efe7f1; }
+.item:active { cursor: grabbing; }
+
+.icono { flex: none; width: 26px; height: 20px; border: 2px solid var(--ciruela); background: #fff; }
+.icono.pool { background: var(--ciruela); }
+.icono.externo { border-color: var(--azul-gris); background: #f1f4f5; }
+.icono.lane { border-color: var(--malva); background: #ece4ee; }
+.icono.actividad { border-color: var(--azul-gris); border-radius: 5px; }
+.icono.gateway-x, .icono.gateway-p, .icono.gateway-i {
+  width: 18px;
+  height: 18px;
+  margin: 0 4px;
+  border-color: var(--arena);
+  transform: rotate(45deg);
+}
+
+.propiedades form { max-width: none; padding: 0; background: none; }
+.propiedades label, .dialogo label { margin-top: 0.4rem; font-size: 0.9rem; }
+.propiedades small.error, .dialogo small.error { margin-top: -0.25rem; }
+.botones { display: flex; gap: 0.5rem; margin-top: 0.9rem; }
+.botones .peligro { background: #8a4b35; }
+
+.pasos { margin: 0; padding-left: 1.1rem; color: #4a3e4d; font-size: 0.9rem; }
+.pasos li { margin-bottom: 0.4rem; }
+
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(46, 34, 50, 0.45);
+}
+.dialogo {
+  width: min(420px, 100%);
+  max-width: none;
+  padding: 1.25rem 1.4rem;
+  background: #fff;
+  border-radius: 0.6rem;
+  box-shadow: 0 12px 40px rgba(46, 34, 50, 0.3);
+}
+.dialogo h3 { margin: 0 0 0.5rem; font-size: 1.1rem; letter-spacing: 0; text-transform: none; color: #2e2232; }
+
+.cargando { padding: 2rem 0; }
+
+@media (max-width: 900px) {
+  .cuerpo { grid-template-columns: 1fr; height: auto; }
+  .lienzo { height: 520px; }
+}
+
+.cerrar-fondo { position: absolute; inset: 0; width: 100%; padding: 0; background: transparent; border-radius: 0; cursor: default; }
+.dialogo { position: relative; }

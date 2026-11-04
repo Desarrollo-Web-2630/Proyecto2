@@ -5,7 +5,14 @@ export interface Gateway {
   id: number;
   nombre: string;
   tipo: TipoGateway;
+  posicionX: number;
+  posicionY: number;
   procesoId: number;
 }
 
-export type GatewayRequest = Pick<Gateway, 'nombre' | 'tipo'>;
+export interface GatewayRequest {
+  nombre: string;
+  tipo: TipoGateway;
+  posicionX?: number;
+  posicionY?: number;
+}

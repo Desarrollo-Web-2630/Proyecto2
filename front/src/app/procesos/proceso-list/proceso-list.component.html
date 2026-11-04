@@ -57,11 +57,7 @@
             <td>{{ p.categoria }}</td>
             <td><span class="etiqueta">{{ p.estado }}</span></td>
             <td class="acciones-fila">
-              <a [routerLink]="[p.id, 'pools']">Pools y lanes</a>
-              <a [routerLink]="[p.id, 'actividades']">Actividades</a>
-              <a [routerLink]="[p.id, 'gateways']">Gateways</a>
-              <a [routerLink]="[p.id, 'arcos']">Arcos</a>
-              <a [routerLink]="[p.id, 'mensajes']">Mensajes</a>
+              <a class="boton" [routerLink]="[p.id, 'editor']">Abrir editor</a>
               @if (puedeEditar()) {
                 <a [routerLink]="[p.id, 'editar']">Editar</a>
                 @if (p.estado === 'BORRADOR') {

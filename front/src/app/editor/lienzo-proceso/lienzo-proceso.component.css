@@ -1,0 +1,185 @@
+:host { display: block; height: 100%; }
+
+.marco {
+  overflow: auto;
+  height: 100%;
+  background-color: #fbfaf9;
+  background-image: radial-gradient(#ddd5de 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.tablero {
+  position: relative;
+  min-width: 100%;
+  padding-bottom: 40px;
+  outline: 2px dashed transparent;
+  outline-offset: -6px;
+  user-select: none;
+}
+.tablero.activo { outline-color: var(--malva); }
+
+.vacio {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: #6b5f6e;
+  text-align: center;
+  pointer-events: none;
+}
+
+.pool {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid var(--ciruela);
+}
+.pool.seleccionado { box-shadow: 0 0 0 3px var(--malva); }
+.pool-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 100%;
+  padding: 0.5rem 0;
+  color: #fff;
+  background: var(--ciruela);
+  font-weight: 600;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  overflow: hidden;
+}
+
+.lane {
+  position: absolute;
+  left: 40px;
+  right: 0;
+  border-top: 1px solid var(--ciruela);
+}
+.lane.destino { background: rgba(149, 163, 127, 0.22); }
+.lane-titulo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 140px;
+  height: 100%;
+  padding: 0.5rem;
+  background: #ece4ee;
+  border-right: 1px solid var(--ciruela);
+  text-align: center;
+  cursor: grab;
+  overflow: hidden;
+}
+.lane-titulo span { color: #6b5f6e; font-size: 0.8rem; }
+.lane-titulo.seleccionado { background: #dccfe0; box-shadow: inset 0 0 0 3px var(--malva); }
+
+.sin-lanes {
+  position: absolute;
+  left: 190px;
+  top: 40px;
+  max-width: 380px;
+  color: #6b5f6e;
+  pointer-events: none;
+}
+
+.actividad {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 52px;
+  padding: 0 0.5rem;
+  background: #fff;
+  border: 2px solid var(--azul-gris);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+  cursor: grab;
+  user-select: none;
+}
+.actividad span { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+.gateway {
+  position: absolute;
+  z-index: 2;
+  width: 56px;
+  height: 56px;
+  cursor: grab;
+  user-select: none;
+}
+.rombo {
+  position: absolute;
+  inset: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 2px solid var(--arena);
+  transform: rotate(45deg);
+}
+.rombo b { transform: rotate(-45deg); font-size: 1.2rem; }
+.gateway small {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 120px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #4a3e4d;
+}
+
+.actividad.seleccionado { box-shadow: 0 0 0 3px var(--malva); }
+.gateway.seleccionado .rombo { box-shadow: 0 0 0 3px var(--malva); }
+.actividad.destino, .gateway.destino .rombo { border-color: var(--salvia); box-shadow: 0 0 0 4px rgba(149, 163, 127, 0.5); }
+
+.conector {
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  background: var(--ciruela);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: crosshair;
+  opacity: 0;
+}
+.actividad:hover .conector, .gateway:hover .conector, .seleccionado .conector, .seleccionado.gateway .conector { opacity: 1; }
+
+.externo {
+  position: absolute;
+  left: 0;
+  width: 420px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  background: #f1f4f5;
+  border: 2px solid var(--azul-gris);
+  border-radius: 0.375rem;
+}
+.externo small { color: #5a747a; }
+.externo.destino { border-color: var(--salvia); background: #eef2e8; box-shadow: 0 0 0 4px rgba(149, 163, 127, 0.4); }
+.externo.seleccionado { box-shadow: 0 0 0 3px var(--malva); }
+
+.capa { position: absolute; z-index: 1; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.linea { fill: none; stroke: #49364e; stroke-width: 2; }
+.zona { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: pointer; }
+.trazo { outline: none; }
+.trazo text { fill: #4a3e4d; font-size: 12px; paint-order: stroke; stroke: #fbfaf9; stroke-width: 4px; }
+.trazo.seleccionado .linea { stroke: var(--malva); stroke-width: 4; }
+.mensaje .linea { stroke: var(--azul-gris); stroke-dasharray: 7 5; }
+.en-curso { stroke: var(--salvia); stroke-dasharray: 5 4; }
