@@ -3,7 +3,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChang
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 
 import { routes } from './app.routes';
-import { apiInterceptor } from './core/api.interceptor';
+import { apiInterceptor } from './core/interceptors/api.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
