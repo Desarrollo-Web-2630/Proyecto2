@@ -25,7 +25,7 @@ export class ProcesoFormComponent implements OnInit {
   // Parámetro :id de la ruta; no existe al crear
   readonly id = input<string>();
   protected readonly editing = computed(() => this.id() !== undefined);
-  protected readonly puedeEditar = computed(() => this.sesion.usuario()?.rolAcceso !== 'LECTURA');
+  protected readonly puedeEditar = this.sesion.puedeEditar;
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);

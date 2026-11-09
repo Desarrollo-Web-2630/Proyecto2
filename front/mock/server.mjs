@@ -1,5 +1,27 @@
 // API simulada para probar sin backend; clave de todos los usuarios: Demo12345
 import http from 'node:http';
+import crypto from 'node:crypto';
+
+// --- JWT de prueba (HS256). En el backend real esto lo hace Spring Security con su propia clave. ---
+const SECRETO = 'solo-para-el-mock';
+const DURACION_SEG = +(process.env.MOCK_JWT_SEG ?? 3600); // MOCK_JWT_SEG=30 npm run mock para probar la expiración
+const b64url = (x) => Buffer.from(typeof x === 'string' ? x : JSON.stringify(x)).toString('base64url');
+const firmar = (datos) => crypto.createHmac('sha256', SECRETO).update(datos).digest('base64url');
+const emitirToken = (u) => {
+  const ahora = Math.floor(Date.now() / 1000);
+  const cuerpo = `${b64url({ alg: 'HS256', typ: 'JWT' })}.${b64url({ sub: u.correo, uid: u.id, empresaId: u.empresaId, rol: u.rolAcceso, iat: ahora, exp: ahora + DURACION_SEG })}`;
+  return `${cuerpo}.${firmar(cuerpo)}`;
+};
+const validarToken = (auth) => {
+  const [tipo, token] = (auth ?? '').split(' ');
+  if (tipo !== 'Bearer' || !token) return null;
+  const [h, pl, firma] = token.split('.');
+  if (!firma || firmar(`${h}.${pl}`) !== firma) return null;
+  const claims = JSON.parse(Buffer.from(pl, 'base64url').toString());
+  return claims.exp * 1000 > Date.now() ? claims : null;
+};
+const PUBLICAS = ['/api/v1/usuarios/login', '/api/auth/activar-cuenta', '/api/auth/reenviar-verificacion'];
+
 const db = {
   empresas: [{ id: 1, nombre: 'Empresa Demo', nit: '900000001', correo: 'admin@demo.com' }, { id: 2, nombre: 'Proveedor SAS', nit: '900000002', correo: 'p@p.com' }],
   procesos: [{ id: 1, nombre: 'Solicitud de vacaciones', descripcion: 'd', categoria: 'Talento Humano', estado: 'BORRADOR', empresaId: 1 }],
@@ -41,13 +63,30 @@ const validarProceso = (b) => !b.nombre?.trim() ? 'El nombre del proceso es obli
 http.createServer((req, res) => {
   let body = ''; req.on('data', c => body += c); req.on('end', () => {
     const b = body ? JSON.parse(body) : {}; const u = new URL(req.url, 'http://x'); const u2 = u; const p = u.pathname; const m = req.method;
-    const empresaId = +(req.headers['x-empresa-id'] ?? 1);
-    console.log(m, p, req.headers['x-empresa-id'] ?? '-');
     let r;
+    // Registro de empresa: público
     if (m === 'POST' && p === '/api/v1/empresas') { if (db.empresas.some(e => e.nit === b.nit)) return err(res, 400, 'Ya existe una empresa con ese NIT'); const e = { id: ++seq, ...b }; db.empresas.push(e); return send(res, 201, e); }
-    if (m === 'GET' && p === '/api/v1/empresas') return send(res, 200, db.empresas);
+    // --- Autenticación: todo lo demás exige un Bearer válido ---
+    const claims = PUBLICAS.includes(p) ? null : validarToken(req.headers.authorization);
+    if (!PUBLICAS.includes(p) && !claims) { console.log(m, p, '401'); return err(res, 401, 'Token ausente, inválido o expirado'); }
+    // La empresa sale del token firmado, nunca de un encabezado que el cliente pueda cambiar
+    const empresaId = claims?.empresaId;
+    console.log(m, p, claims ? `${claims.sub} (${claims.rol}, empresa ${empresaId})` : 'público');
+    // --- Autorización por rol (el backend real lo hace con @PreAuthorize / authorizeHttpRequests) ---
+    if (claims) {
+      const soloAdmin = (p.startsWith('/api/v1/usuarios') && m !== 'GET') || (p.startsWith('/api/v1/roles') && m !== 'GET');
+      if (soloAdmin && claims.rol !== 'ADMIN') return err(res, 403, 'Solo el administrador puede realizar esta acción');
+      if (m === 'DELETE' && claims.rol !== 'ADMIN') return err(res, 403, 'Solo el administrador puede eliminar');
+      if (m !== 'GET' && claims.rol === 'LECTURA') return err(res, 403, 'Tu rol es de solo lectura');
+    }
+    // --- Aislamiento: un proceso o usuario de otra empresa responde 404 (ni se confirma que exista) ---
+    const procOtra = (r = p.match(/^\/api\/v1\/procesos\/(\d+)/)) && db.procesos.find(x => x.id == r[1] && x.empresaId != empresaId);
+    const usrOtra = (r = p.match(/^\/api\/v1\/usuarios\/(\d+)/)) && db.usuarios.find(x => x.id == r[1] && x.empresaId != empresaId);
+    if (procOtra || usrOtra) return err(res, 404, 'El recurso no existe');
+    if (m === 'GET' && p === '/api/v1/empresas') return send(res, 200, db.empresas.filter(e => e.id == empresaId));
+    if (m === 'GET' && (r = p.match(/^\/api\/v1\/empresas\/(\d+)$/)) && r[1] != empresaId) return err(res, 403, 'No puedes consultar otra empresa');
     if ((r = p.match(/^\/api\/v1\/empresas\/(\d+)$/))) return send(res, 200, db.empresas.find(e => e.id == r[1]));
-    if (p === '/api/v1/usuarios/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); if (!u || b.password !== 'Demo12345') return send(res, 401); return send(res, 200, u); }
+    if (p === '/api/v1/usuarios/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); if (!u || b.password !== 'Demo12345') return err(res, 401, 'Correo o contraseña incorrectos'); return send(res, 200, { token: emitirToken(u), usuario: u }); }
     if (p === '/api/v1/usuarios' && m === 'GET') return send(res, 200, db.usuarios.filter(u => u.empresaId == empresaId));
     if (p === '/api/v1/usuarios/buscar' && m === 'GET') return send(res, 200, paginar(db.usuarios.filter(u => u.empresaId == empresaId).sort((a, c) => a.nombre.localeCompare(c.nombre)), u));
     if (p === '/api/v1/usuarios' && m === 'POST') { if (db.usuarios.some(u => u.correo === b.correo)) return err(res, 400, `Ya existe un usuario con el correo '${b.correo}'`); const u = { id: ++seq, nombre: b.nombre, correo: b.correo, rolAcceso: b.rolAcceso, activo: false, empresaId }; db.usuarios.push(u); return send(res, 201, u); }

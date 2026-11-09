@@ -149,8 +149,8 @@ export class EditorProcesoComponent implements OnInit {
   protected readonly dialogo = signal<Dialogo | null>(null);
   protected readonly guardando = signal(false);
 
-  protected readonly editable = computed(() => this.sesion.usuario()?.rolAcceso !== 'LECTURA');
-  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
+  protected readonly editable = this.sesion.puedeEditar;
+  protected readonly puedeEliminar = this.sesion.esAdmin;
   protected readonly propietario = computed(() => this.pools().find(p => p.tipo === 'PROPIETARIO') ?? null);
 
   protected readonly form = this.fb.nonNullable.group({

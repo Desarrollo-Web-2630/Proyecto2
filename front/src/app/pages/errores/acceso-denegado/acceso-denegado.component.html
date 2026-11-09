@@ -1,0 +1,8 @@
+<h2>Acceso denegado</h2>
+<p class="error" role="alert">
+  Tu rol
+  @if (sesion.rol(); as rol) { <strong>({{ rol }})</strong> }
+  no tiene permiso para entrar a esta pantalla.
+</p>
+<p>Si necesitas acceso, pídele al administrador de tu empresa que cambie tu rol.</p>
+<a routerLink="/procesos">Volver a mis procesos</a>

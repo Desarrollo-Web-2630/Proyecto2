@@ -1,6 +1,10 @@
 <main>
   <h2>Iniciar sesión</h2>
 
+  @if (expirada) {
+    <p class="error" role="status">Tu sesión expiró. Inicia sesión de nuevo para continuar.</p>
+  }
+
   <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <label>
       Correo

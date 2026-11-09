@@ -8,6 +8,12 @@ export function mensajeDeError(err: unknown, porDefecto: string): string {
   if (err.status === 0) {
     return 'No hay conexión con el servidor. Verifica que el backend esté en ejecución.';
   }
+  if (err.status === 401) {
+    return 'Tu sesión expiró. Vuelve a iniciar sesión.';
+  }
+  if (err.status === 403) {
+    return 'No tienes permiso para realizar esta acción.';
+  }
   if (err.status >= 500) {
     return 'Ocurrió un error en el servidor. Intenta de nuevo más tarde.';
   }

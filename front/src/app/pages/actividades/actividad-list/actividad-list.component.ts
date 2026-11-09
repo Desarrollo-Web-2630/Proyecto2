@@ -1,5 +1,5 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EMPTY, forkJoin, map, of, switchMap } from 'rxjs';
 import { mensajeDeError } from '../../../core/utils/api-error';
@@ -52,8 +52,8 @@ export class ActividadListComponent implements OnInit {
   protected readonly actionError = signal('');
 
   // Eliminar es solo para el administrador
-  protected readonly puedeEditar = computed(() => this.sesion.usuario()?.rolAcceso !== 'LECTURA');
-  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
+  protected readonly puedeEditar = this.sesion.puedeEditar;
+  protected readonly puedeEliminar = this.sesion.esAdmin;
 
   private readonly tamano = 10;
 

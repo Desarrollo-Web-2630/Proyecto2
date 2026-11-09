@@ -1,5 +1,5 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Observable, forkJoin, switchMap } from 'rxjs';
@@ -41,8 +41,8 @@ export class MensajeListComponent implements OnInit {
   protected readonly actionError = signal('');
   protected readonly editando = signal<Mensaje | null>(null);
 
-  protected readonly puedeEditar = computed(() => this.sesion.usuario()?.rolAcceso !== 'LECTURA');
-  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
+  protected readonly puedeEditar = this.sesion.puedeEditar;
+  protected readonly puedeEliminar = this.sesion.esAdmin;
 
   protected readonly form = this.fb.group({
     nombre: ['', [Validators.required, Validators.maxLength(255)]],

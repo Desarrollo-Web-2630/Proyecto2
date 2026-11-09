@@ -1,5 +1,5 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../../core/utils/api-error';
@@ -34,8 +34,8 @@ export class ProcesoListComponent implements OnInit {
   protected estado: EstadoProceso | '' = '';
   protected incluirInactivos = false;
 
-  protected readonly puedeEditar = computed(() => this.sesion.usuario()?.rolAcceso !== 'LECTURA');
-  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
+  protected readonly puedeEditar = this.sesion.puedeEditar;
+  protected readonly puedeEliminar = this.sesion.esAdmin;
 
   ngOnInit(): void {
     this.load();

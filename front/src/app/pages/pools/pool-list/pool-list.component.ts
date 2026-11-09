@@ -63,8 +63,8 @@ export class PoolListComponent implements OnInit {
   protected readonly externos = computed(() => this.pools().filter(p => p.tipo !== 'PROPIETARIO'));
 
   // HU-22: solo lectura segun el rol de acceso del usuario
-  protected readonly soloLectura = computed(() => this.sesion.usuario()?.rolAcceso === 'LECTURA');
-  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
+  protected readonly soloLectura = this.sesion.soloLectura;
+  protected readonly puedeEliminar = this.sesion.esAdmin;
 
   protected readonly poolForm = this.fb.nonNullable.group({
     nombre: ['', [Validators.required, Validators.maxLength(120)]],

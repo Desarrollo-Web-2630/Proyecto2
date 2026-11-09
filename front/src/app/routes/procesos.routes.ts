@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { rolGuard } from '../core/guards/rol.guard';
 
 export const PROCESOS_ROUTES: Routes = [
   {
@@ -8,11 +9,13 @@ export const PROCESOS_ROUTES: Routes = [
   },
   {
     path: 'nuevo',
+    canActivate: [rolGuard('ADMIN', 'EDITOR')],
     title: 'Nuevo proceso',
     loadComponent: () => import('../pages/procesos/proceso-form/proceso-form.component').then(m => m.ProcesoFormComponent)
   },
   {
     path: ':id/editar',
+    canActivate: [rolGuard('ADMIN', 'EDITOR')],
     title: 'Editar proceso',
     loadComponent: () => import('../pages/procesos/proceso-form/proceso-form.component').then(m => m.ProcesoFormComponent)
   },
@@ -48,11 +51,13 @@ export const PROCESOS_ROUTES: Routes = [
   },
   {
     path: ':procesoId/actividades/nueva',
+    canActivate: [rolGuard('ADMIN', 'EDITOR')],
     title: 'Nueva actividad',
     loadComponent: () => import('../pages/actividades/actividad-form/actividad-form.component').then(m => m.ActividadFormComponent)
   },
   {
     path: ':procesoId/actividades/:id/editar',
+    canActivate: [rolGuard('ADMIN', 'EDITOR')],
     title: 'Editar actividad',
     loadComponent: () => import('../pages/actividades/actividad-form/actividad-form.component').then(m => m.ActividadFormComponent)
   }
