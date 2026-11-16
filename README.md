@@ -43,13 +43,17 @@ está nginx, que además reenvía `/api/` al backend (`nginx/default.conf.templa
 ```text
 front/src/app/
 ├── core/
-│   ├── api.interceptor.ts  antepone /api a cada petición y agrega el encabezado X-Empresa-Id
-│   └── api-error.ts   mensajeDeError(): convierte el error del backend en un texto para el usuario
+│   ├── api.interceptor.ts  antepone /api, agrega Authorization: Bearer <token> y cierra la sesión ante un 401
+│   ├── api-error.ts   mensajeDeError(): convierte el error del backend en un texto para el usuario
+│   ├── auth.guard.ts  pantallas con sesión: sin token vigente manda a /login
+│   ├── rol.guard.ts   rolGuard('ADMIN', ...): oculta pantallas según el rol (el backend igual valida)
+│   ├── invitado.guard.ts  landing, login y registro solo sin sesión
+│   └── *.spec.ts      pruebas unitarias de guards e interceptor (npm test)
 ├── models/            una interfaz por entidad, espejo de los DTO del backend
 ├── services/          un servicio por recurso REST con HttpClient; devuelven Observable
 ├── layout/            barra superior y <router-outlet> de las pantallas con sesión
 ├── inicio/            página pública
-├── auth/              login y activar-cuenta (HU-03)
+├── auth/              login con JWT y activar-cuenta (HU-03)
 ├── empresas/          empresa-form (HU-01)
 ├── usuarios/          usuario-list y usuario-form (HU-02)
 ├── procesos/          proceso-list y proceso-form (HU-04 a HU-07)
@@ -73,3 +77,11 @@ Cada módulo tiene su archivo de rutas (`roles/roles.routes.ts`) y `app.routes.t
 4. Rutas del módulo en `<modulo>/<modulo>.routes.ts` y su entrada en `app.routes.ts`.
 5. Si se quiere probar sin backend, agregar los endpoints en `mock/server.mjs`.
 6. Antes del PR: `npm run lint` y `npm run build`.
+
+
+## Despliegue en Kubernetes
+
+`.github/workflows/deploy.yml` construye la imagen, la publica en GHCR y la aplica en MicroK8s con
+`front/k8s/frontend.yaml` (Deployment y Service, 2 réplicas) y `front/k8s/ingress.yaml` (entrada
+única: `/api` y Swagger al backend, el resto al frontend). La guía completa, con los secretos y el
+orden de despliegue, está en `DESPLIEGUE_K8S.md` del repositorio del backend.

@@ -1,7 +1,7 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { mensajeDeError } from '../../core/api-error';
 import { AuthService } from '../../services/auth.service';
 
@@ -19,7 +19,10 @@ export class LoginComponent {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly saving = signal(false);
-  protected readonly message = signal('');
+  // Llega con ?expirada=true cuando el interceptor recibe un 401
+  protected readonly message = signal(
+    inject(ActivatedRoute).snapshot.queryParamMap.has('expirada') ? 'Tu sesión venció. Inicia sesión de nuevo.' : ''
+  );
 
   protected readonly form = this.fb.nonNullable.group({
     correo: ['', [Validators.required, Validators.email]],

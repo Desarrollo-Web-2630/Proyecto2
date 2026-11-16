@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { LayoutComponent } from './layout/layout.component';
+import { authGuard } from './core/auth.guard';
 import { invitadoGuard } from './core/invitado.guard';
 
 export const routes: Routes = [
@@ -13,6 +14,7 @@ export const routes: Routes = [
   },
   {
     path: 'login',
+    canActivate: [invitadoGuard],
     title: 'Iniciar sesión',
     loadComponent: () => import('./auth/login/login.component').then(m => m.LoginComponent)
   },
@@ -23,6 +25,7 @@ export const routes: Routes = [
   },
   {
     path: 'registro',
+    canActivate: [invitadoGuard],
     title: 'Registrar empresa',
     loadComponent: () => import('./empresas/empresa-form/empresa-form.component').then(m => m.EmpresaFormComponent)
   },
@@ -30,6 +33,9 @@ export const routes: Routes = [
   {
     path: '',
     component: LayoutComponent,
+    // canActivateChild revisa la sesión también al moverse entre pantallas internas
+    canActivate: [authGuard],
+    canActivateChild: [authGuard],
     children: [
       { path: 'procesos', loadChildren: () => import('./procesos/procesos.routes').then(m => m.PROCESOS_ROUTES) },
       { path: 'usuarios', loadChildren: () => import('./usuarios/usuarios.routes').then(m => m.USUARIOS_ROUTES) },

@@ -41,13 +41,15 @@ const validarProceso = (b) => !b.nombre?.trim() ? 'El nombre del proceso es obli
 http.createServer((req, res) => {
   let body = ''; req.on('data', c => body += c); req.on('end', () => {
     const b = body ? JSON.parse(body) : {}; const u = new URL(req.url, 'http://x'); const u2 = u; const p = u.pathname; const m = req.method;
-    const empresaId = +(req.headers['x-empresa-id'] ?? 1);
+    // Token falso del mock: "mock-<idUsuario>"; la empresa sale del usuario, como en el backend real
+    const tokenUsuario = db.usuarios.find(x => `Bearer mock-${x.id}` === req.headers['authorization']);
+    const empresaId = tokenUsuario?.empresaId ?? 1;
     console.log(m, p, req.headers['x-empresa-id'] ?? '-');
     let r;
     if (m === 'POST' && p === '/api/v1/empresas') { if (db.empresas.some(e => e.nit === b.nit)) return err(res, 400, 'Ya existe una empresa con ese NIT'); const e = { id: ++seq, ...b }; db.empresas.push(e); return send(res, 201, e); }
     if (m === 'GET' && p === '/api/v1/empresas') return send(res, 200, db.empresas);
     if ((r = p.match(/^\/api\/v1\/empresas\/(\d+)$/))) return send(res, 200, db.empresas.find(e => e.id == r[1]));
-    if (p === '/api/v1/usuarios/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); if (!u || b.password !== 'Demo12345') return send(res, 401); return send(res, 200, u); }
+    if (p === '/api/auth/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); if (!u || b.password !== 'Demo12345') return err(res, 401, 'Correo o contrasena incorrectos, o la cuenta no esta activa'); return send(res, 200, { token: `mock-${u.id}`, tipo: 'Bearer', expiraEn: 3600, usuario: u }); }
     if (p === '/api/v1/usuarios' && m === 'GET') return send(res, 200, db.usuarios.filter(u => u.empresaId == empresaId));
     if (p === '/api/v1/usuarios/buscar' && m === 'GET') return send(res, 200, paginar(db.usuarios.filter(u => u.empresaId == empresaId).sort((a, c) => a.nombre.localeCompare(c.nombre)), u));
     if (p === '/api/v1/usuarios' && m === 'POST') { if (db.usuarios.some(u => u.correo === b.correo)) return err(res, 400, `Ya existe un usuario con el correo '${b.correo}'`); const u = { id: ++seq, nombre: b.nombre, correo: b.correo, rolAcceso: b.rolAcceso, activo: false, empresaId }; db.usuarios.push(u); return send(res, 201, u); }
