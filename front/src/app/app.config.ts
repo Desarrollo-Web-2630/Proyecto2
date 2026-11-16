@@ -3,15 +3,13 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZoneChang
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 
 import { routes } from './app.routes';
-import { apiInterceptor } from './core/interceptors/api.interceptor';
-import { authInterceptor } from './core/interceptors/auth.interceptor';
-import { errorInterceptor } from './core/interceptors/error.interceptor';
+import { apiInterceptor } from './core/api.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideHttpClient(withInterceptors([apiInterceptor, authInterceptor, errorInterceptor])),
+    provideHttpClient(withInterceptors([apiInterceptor])),
     provideRouter(routes, withComponentInputBinding())
   ]
 };
