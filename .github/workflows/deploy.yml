@@ -1,0 +1,81 @@
+name: Build and Deploy (frontend)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: procesos-frontend
+  IMAGE_TAG: latest
+  # Namespace del clúster y dirección por la que se accede (IP de la VM o dominio)
+  NAMESPACE: procesos
+  DOMINIO: 10.43.99.75
+
+jobs:
+  build-and-publish:
+    name: Build and Push Image to GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        run: |
+          docker build -f front/Dockerfile \
+            -t ghcr.io/${OWNER_LC}/${IMAGE_NAME}:${IMAGE_TAG} \
+            -t ghcr.io/${OWNER_LC}/${IMAGE_NAME}:${GITHUB_SHA::7} front
+
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/${OWNER_LC}/${IMAGE_NAME}:${IMAGE_TAG}
+          docker push ghcr.io/${OWNER_LC}/${IMAGE_NAME}:${GITHUB_SHA::7}
+
+  deploy-onpremise:
+    name: Deploy on MicroK8s On-Premise
+    runs-on: main
+    needs: build-and-publish
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
+      - name: Comprobar si el deployment ya existe
+        id: check
+        run: |
+          if sudo microk8s kubectl get deployment procesos-frontend -n "$NAMESPACE" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      # El frontend necesita el Service del backend: el repo del backend se despliega primero
+      - name: Apply Kubernetes manifests
+        run: |
+          for f in front/k8s/frontend.yaml front/k8s/ingress.yaml; do
+            sed -e "s|__OWNER__|${OWNER_LC}|g" -e "s|__DOMINIO__|${DOMINIO}|g" "$f" \
+              | sudo microk8s kubectl apply -n "$NAMESPACE" -f -
+          done
+
+      - name: Restart Kubernetes deployment
+        if: steps.check.outputs.exists == 'true'
+        run: sudo microk8s kubectl rollout restart deployment/procesos-frontend -n "$NAMESPACE"
+
+      - name: Wait for rollout
+        run: |
+          sudo microk8s kubectl rollout status deployment/procesos-frontend -n "$NAMESPACE" --timeout=300s
