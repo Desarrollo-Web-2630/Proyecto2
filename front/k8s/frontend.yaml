@@ -1,0 +1,51 @@
+# Frontend Angular servido por nginx. __OWNER__ lo reemplaza el workflow.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: procesos-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: procesos-frontend
+  template:
+    metadata:
+      labels:
+        app: procesos-frontend
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: procesos-frontend
+          image: ghcr.io/__OWNER__/procesos-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          env:
+            # nginx reenvia /api al Service del backend (mismo namespace)
+            - name: BACKEND_URL
+              value: http://procesos-backend:8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: procesos-frontend
+spec:
+  selector:
+    app: procesos-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

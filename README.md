@@ -77,3 +77,11 @@ Cada módulo tiene su archivo de rutas (`roles/roles.routes.ts`) y `app.routes.t
 4. Rutas del módulo en `<modulo>/<modulo>.routes.ts` y su entrada en `app.routes.ts`.
 5. Si se quiere probar sin backend, agregar los endpoints en `mock/server.mjs`.
 6. Antes del PR: `npm run lint` y `npm run build`.
+
+
+## Despliegue en Kubernetes
+
+`.github/workflows/deploy.yml` construye la imagen, la publica en GHCR y la aplica en MicroK8s con
+`front/k8s/frontend.yaml` (Deployment y Service, 2 réplicas) y `front/k8s/ingress.yaml` (entrada
+única: `/api` y Swagger al backend, el resto al frontend). La guía completa, con los secretos y el
+orden de despliegue, está en `DESPLIEGUE_K8S.md` del repositorio del backend.
