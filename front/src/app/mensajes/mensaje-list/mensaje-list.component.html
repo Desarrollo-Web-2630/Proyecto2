@@ -22,9 +22,11 @@
         <tr>
           <th scope="col">Mensaje</th>
           <th scope="col">Correlación</th>
+          <th scope="col">Tipo</th>
           <th scope="col">Envía (throw)</th>
           <th scope="col">Recibe (catch)</th>
           <th scope="col">Actividad de envío</th>
+          <th scope="col">Medio externo</th>
           <th scope="col"><span class="nota">Acciones</span></th>
         </tr>
       </thead>
@@ -33,9 +35,11 @@
           <tr>
             <td>{{ m.nombre }}</td>
             <td>{{ m.claveCorrelacion }}</td>
+            <td>{{ m.tipoMensaje ?? 'THROW' }}</td>
             <td>{{ nombrePool(m.poolOrigenId) }}</td>
             <td>{{ nombrePool(m.poolDestinoId) }}</td>
             <td>{{ nombreActividad(m.elementoOrigenId) }}</td>
+            <td>{{ m.destinoExterno ?? '—' }}</td>
             <td class="acciones-fila">
               @if (puedeEditar()) {
                 <button type="button" class="enlace" (click)="editar(m)">Editar</button>
@@ -46,7 +50,7 @@
             </td>
           </tr>
         } @empty {
-          <tr><td colspan="6">Este proceso aún no tiene mensajes.</td></tr>
+          <tr><td colspan="8">Este proceso aún no tiene mensajes.</td></tr>
         }
       </tbody>
     </table>
@@ -74,6 +78,22 @@
           @if (form.controls.claveCorrelacion.touched && form.controls.claveCorrelacion.invalid) {
             <small class="error">La clave de correlación es obligatoria (máximo 255 caracteres)</small>
           }
+          <label>
+            Tipo de mensaje
+            <select formControlName="tipoMensaje">
+              @for (tipo of tiposMensaje; track tipo.valor) {
+                <option [value]="tipo.valor">{{ tipo.texto }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Variante
+            <select formControlName="variante">
+              @for (variante of variantesMensaje; track variante.valor) {
+                <option [value]="variante.valor">{{ variante.texto }}</option>
+              }
+            </select>
+          </label>
           <label>
             Pool que envía
             <select formControlName="poolOrigenId">
@@ -104,6 +124,23 @@
               <option [ngValue]="null">Ninguna</option>
               @for (a of actividades(); track a.id) {
                 <option [ngValue]="a.id">{{ a.nombre }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Destino externo (opcional)
+            <input formControlName="destinoExterno" placeholder="Correo, endpoint o sistema externo">
+          </label>
+          <label>
+            Payload (opcional)
+            <input formControlName="payload" placeholder="Datos enviados o recibidos">
+          </label>
+          <label>
+            Política de fallo (opcional)
+            <select formControlName="politicaFallo">
+              <option [ngValue]="null">Sin política</option>
+              @for (politica of politicasFallo; track politica.valor) {
+                <option [value]="politica.valor">{{ politica.texto }}</option>
               }
             </select>
           </label>

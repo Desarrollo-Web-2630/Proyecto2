@@ -1,0 +1,83 @@
+<div class="encabezado">
+  <div>
+    <a [routerLink]="['/procesos', procesoId(), 'pools']">← Pools y lanes</a>
+    <h2>Permisos del pool #{{ poolId() }}</h2>
+  </div>
+</div>
+
+@switch (status()) {
+  @case ('loading') {
+    <p>Cargando permisos…</p>
+  }
+  @case ('error') {
+    <p class="error" role="alert">{{ message() }}</p>
+    <button type="button" (click)="load()">Reintentar</button>
+  }
+  @case ('success') {
+    @if (aviso()) {
+      <p class="exito" role="status">{{ aviso() }}</p>
+    }
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <div class="tarjeta">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Rol</th>
+            <th scope="col">Crear</th>
+            <th scope="col">Editar</th>
+            <th scope="col">Eliminar</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (permiso of permisos(); track permiso.rolAcceso) {
+            <tr>
+              <td>{{ permiso.rolAcceso }}</td>
+              <td>
+                <input
+                  #crear
+                  type="checkbox"
+                  [attr.aria-label]="'Permitir crear a ' + permiso.rolAcceso"
+                  [checked]="permiso.puedeCrear"
+                  [disabled]="!puedeEditar()"
+                  (change)="alternar(permiso, 'puedeCrear', crear.checked)"
+                >
+              </td>
+              <td>
+                <input
+                  #editar
+                  type="checkbox"
+                  [attr.aria-label]="'Permitir editar a ' + permiso.rolAcceso"
+                  [checked]="permiso.puedeEditar"
+                  [disabled]="!puedeEditar()"
+                  (change)="alternar(permiso, 'puedeEditar', editar.checked)"
+                >
+              </td>
+              <td>
+                <input
+                  #eliminar
+                  type="checkbox"
+                  [attr.aria-label]="'Permitir eliminar a ' + permiso.rolAcceso"
+                  [checked]="permiso.puedeEliminar"
+                  [disabled]="!puedeEditar()"
+                  (change)="alternar(permiso, 'puedeEliminar', eliminar.checked)"
+                >
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4">No hay roles configurados para este pool.</td></tr>
+          }
+        </tbody>
+      </table>
+      @if (puedeEditar()) {
+        <div class="acciones">
+          <button type="button" [disabled]="guardando()" (click)="guardar()">Guardar permisos</button>
+        </div>
+      } @else {
+        <p class="nota">Tu rol solo permite consultar los permisos.</p>
+      }
+    </div>
+  }
+}

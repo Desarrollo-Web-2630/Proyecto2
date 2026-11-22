@@ -152,6 +152,10 @@
             <path class="zona" [attr.d]="t.path" />
             <path class="linea" [attr.d]="t.path" marker-end="url(#flecha-mensaje)" />
             <text [attr.x]="t.etiquetaX" [attr.y]="t.etiquetaY">{{ t.etiqueta }}</text>
+            <text class="glifo" [attr.x]="t.etiquetaX" [attr.y]="t.etiquetaY - 15">{{ t.glifo }}</text>
+            @if (t.medio) {
+              <text class="medio" [attr.x]="t.etiquetaX" [attr.y]="t.etiquetaY + 15">{{ t.medio }}</text>
+            }
           </g>
         }
         @if (trazoEnCurso(); as path) {

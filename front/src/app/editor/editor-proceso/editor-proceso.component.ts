@@ -2,13 +2,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, effect, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { mensajeDeError } from '../../core/api-error';
 import { Actividad } from '../../models/actividad.model';
 import { Arco } from '../../models/arco.model';
 import { Gateway, TipoGateway } from '../../models/gateway.model';
 import { Lane } from '../../models/lane.model';
-import { Mensaje } from '../../models/mensaje.model';
+import { Mensaje, PoliticaFallo, TipoMensaje, VarianteMensaje } from '../../models/mensaje.model';
 import { Pool, TipoPool } from '../../models/pool.model';
 import { Proceso } from '../../models/proceso.model';
 import { RolProceso } from '../../models/rol-proceso.model';
@@ -132,6 +132,22 @@ export class EditorProcesoComponent implements OnInit {
     { valor: 'INCLUSIVO', texto: 'Inclusivo (uno o varios caminos)' }
   ];
 
+  protected readonly tiposMensaje: { valor: TipoMensaje; texto: string }[] = [
+    { valor: 'THROW', texto: 'THROW · enviar' },
+    { valor: 'CATCH', texto: 'CATCH · recibir' }
+  ];
+
+  protected readonly variantesMensaje: { valor: VarianteMensaje; texto: string }[] = [
+    { valor: 'INICIO', texto: 'Inicio' },
+    { valor: 'INTERMEDIO', texto: 'Intermedio' }
+  ];
+
+  protected readonly politicasFallo: { valor: PoliticaFallo; texto: string }[] = [
+    { valor: 'REINTENTAR', texto: 'Reintentar' },
+    { valor: 'FALLAR', texto: 'Fallar' },
+    { valor: 'REGISTRAR', texto: 'Registrar' }
+  ];
+
   protected readonly status = signal<'loading' | 'success' | 'error'>('loading');
   protected readonly mensajeCarga = signal('');
   protected readonly error = signal('');
@@ -149,8 +165,10 @@ export class EditorProcesoComponent implements OnInit {
   protected readonly dialogo = signal<Dialogo | null>(null);
   protected readonly guardando = signal(false);
 
-  protected readonly editable = computed(() => this.sesion.usuario()?.rolAcceso !== 'LECTURA');
-  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
+  protected readonly compartidoSoloLectura = signal(false);
+  protected readonly editable = computed(() => this.sesion.usuario()?.rolAcceso !== 'LECTURA' && !this.compartidoSoloLectura());
+  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin() && !this.compartidoSoloLectura());
+  protected readonly puedeCompartir = computed(() => this.sesion.esAdmin() && !this.compartidoSoloLectura());
   protected readonly propietario = computed(() => this.pools().find(p => p.tipo === 'PROPIETARIO') ?? null);
 
   protected readonly form = this.fb.nonNullable.group({
@@ -158,7 +176,12 @@ export class EditorProcesoComponent implements OnInit {
     tipo: [''],
     rolId: [null as number | null],
     clave: [''],
-    condicion: ['']
+    condicion: [''],
+    tipoMensaje: ['THROW' as TipoMensaje],
+    variante: ['INICIO' as VarianteMensaje],
+    destinoExterno: [''],
+    payload: [''],
+    politicaFallo: [null as PoliticaFallo | null]
   });
 
   protected readonly props = this.fb.nonNullable.group({
@@ -166,7 +189,12 @@ export class EditorProcesoComponent implements OnInit {
     tipo: [''],
     rolId: [null as number | null],
     clave: [''],
-    condicion: ['']
+    condicion: [''],
+    tipoMensaje: ['THROW' as TipoMensaje],
+    variante: ['INICIO' as VarianteMensaje],
+    destinoExterno: [''],
+    payload: [''],
+    politicaFallo: [null as PoliticaFallo | null]
   });
 
   protected readonly elegida = computed(() => {
@@ -221,12 +249,18 @@ export class EditorProcesoComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    forkJoin({ proceso: this.procesoService.get(this.id), roles: this.rolService.list(), datos: this.datos() })
+    forkJoin({
+      proceso: this.procesoService.get(this.id),
+      roles: this.rolService.list(),
+      datos: this.datos(),
+      acceso: this.procesoService.acceso(this.id).pipe(catchError(() => of({ soloLectura: false })))
+    })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: ({ proceso, roles, datos }) => {
+        next: ({ proceso, roles, datos, acceso }) => {
           this.proceso.set(proceso);
           this.roles.set(roles);
+          this.compartidoSoloLectura.set(acceso.soloLectura);
           this.aplicar(datos);
           this.status.set('success');
         },
@@ -275,6 +309,9 @@ export class EditorProcesoComponent implements OnInit {
   }
 
   alMoverActividad(m: MoverActividad): void {
+    if (!this.editable()) {
+      return;
+    }
     const { actividad, laneId, x, y } = m;
     this.actividades.update(lista =>
       lista.map(a => (a.id === actividad.id ? { ...a, laneId, posicionX: x, posicionY: y } : a))
@@ -293,6 +330,9 @@ export class EditorProcesoComponent implements OnInit {
   }
 
   alMoverGateway(m: MoverGateway): void {
+    if (!this.editable()) {
+      return;
+    }
     this.gateways.update(lista =>
       lista.map(g => (g.id === m.gateway.id ? { ...g, posicionX: m.x, posicionY: m.y } : g))
     );
@@ -300,6 +340,9 @@ export class EditorProcesoComponent implements OnInit {
   }
 
   alReordenar(ids: number[]): void {
+    if (!this.editable()) {
+      return;
+    }
     const propietario = this.propietario();
     if (!propietario) {
       return;
@@ -308,6 +351,9 @@ export class EditorProcesoComponent implements OnInit {
   }
 
   alCrearArco(a: CrearArco): void {
+    if (!this.editable()) {
+      return;
+    }
     const origenEsGateway = this.gateways().some(g => g.id === a.origenId);
     if (origenEsGateway) {
       this.abrir({ tipo: 'arco', origenId: a.origenId, destinoId: a.destinoId }, '');
@@ -320,6 +366,9 @@ export class EditorProcesoComponent implements OnInit {
   }
 
   alCrearMensaje(m: CrearMensaje): void {
+    if (!this.editable()) {
+      return;
+    }
     this.abrir({ tipo: 'mensaje', origenId: m.origenId, poolDestinoId: m.poolDestinoId }, '');
   }
 
@@ -348,6 +397,9 @@ export class EditorProcesoComponent implements OnInit {
   }
 
   guardarDialogo(): void {
+    if (!this.editable()) {
+      return;
+    }
     const d = this.dialogo();
     if (!d) {
       return;
@@ -398,7 +450,12 @@ export class EditorProcesoComponent implements OnInit {
           claveCorrelacion: v.clave.trim(),
           poolOrigenId: propietario.id,
           poolDestinoId: d.poolDestinoId,
-          elementoOrigenId: d.origenId
+          elementoOrigenId: d.origenId,
+          tipoMensaje: v.tipoMensaje,
+          variante: v.variante,
+          destinoExterno: v.destinoExterno.trim() || null,
+          payload: v.payload.trim() || null,
+          politicaFallo: v.politicaFallo
         });
         break;
       }
@@ -418,6 +475,9 @@ export class EditorProcesoComponent implements OnInit {
   // Panel de propiedades
 
   guardarPropiedades(): void {
+    if (!this.editable()) {
+      return;
+    }
     const s = this.seleccion();
     const el = this.elegida();
     if (!s || !el) {
@@ -466,7 +526,12 @@ export class EditorProcesoComponent implements OnInit {
           claveCorrelacion: v.clave.trim(),
           poolOrigenId: m.poolOrigenId,
           poolDestinoId: m.poolDestinoId,
-          elementoOrigenId: m.elementoOrigenId
+          elementoOrigenId: m.elementoOrigenId,
+          tipoMensaje: v.tipoMensaje,
+          variante: v.variante,
+          destinoExterno: v.destinoExterno.trim() || null,
+          payload: v.payload.trim() || null,
+          politicaFallo: v.politicaFallo
         });
         break;
       }
@@ -489,6 +554,9 @@ export class EditorProcesoComponent implements OnInit {
   }
 
   eliminar(): void {
+    if (!this.editable() || !this.puedeEliminar()) {
+      return;
+    }
     const s = this.seleccion();
     const el = this.elegida();
     if (!s || !el) {
@@ -567,7 +635,18 @@ export class EditorProcesoComponent implements OnInit {
 
   private abrir(dialogo: Dialogo, nombre: string, tipo = ''): void {
     const rolId = this.roles().length > 0 ? this.roles()[0].id : null;
-    this.form.reset({ nombre, tipo, rolId, clave: '', condicion: '' });
+    this.form.reset({
+      nombre,
+      tipo,
+      rolId,
+      clave: '',
+      condicion: '',
+      tipoMensaje: 'THROW',
+      variante: 'INICIO',
+      destinoExterno: '',
+      payload: '',
+      politicaFallo: null
+    });
     const requerido = Validators.required;
     this.form.controls.rolId.setValidators(dialogo.tipo === 'lane' ? requerido : null);
     this.form.controls.clave.setValidators(dialogo.tipo === 'mensaje' ? [requerido, Validators.maxLength(255)] : null);
@@ -581,7 +660,18 @@ export class EditorProcesoComponent implements OnInit {
   }
 
   private rellenarPropiedades(s: Seleccion | null, el: ReturnType<EditorProcesoComponent['elegida']>): void {
-    this.props.reset({ nombre: '', tipo: '', rolId: null, clave: '', condicion: '' });
+    this.props.reset({
+      nombre: '',
+      tipo: '',
+      rolId: null,
+      clave: '',
+      condicion: '',
+      tipoMensaje: 'THROW',
+      variante: 'INICIO',
+      destinoExterno: '',
+      payload: '',
+      politicaFallo: null
+    });
     this.props.controls.nombre.setValidators(
       s?.tipo === 'arco' ? Validators.maxLength(255) : [Validators.required, Validators.maxLength(255)]
     );
@@ -599,9 +689,19 @@ export class EditorProcesoComponent implements OnInit {
       case 'arco':
         this.props.patchValue({ nombre: (el as Arco).nombre ?? '', condicion: (el as Arco).condicion ?? '' });
         break;
-      case 'mensaje':
-        this.props.patchValue({ nombre: (el as Mensaje).nombre, clave: (el as Mensaje).claveCorrelacion });
+      case 'mensaje': {
+        const mensaje = el as Mensaje;
+        this.props.patchValue({
+          nombre: mensaje.nombre,
+          clave: mensaje.claveCorrelacion,
+          tipoMensaje: mensaje.tipoMensaje ?? 'THROW',
+          variante: mensaje.variante ?? 'INICIO',
+          destinoExterno: mensaje.destinoExterno ?? '',
+          payload: mensaje.payload ?? '',
+          politicaFallo: mensaje.politicaFallo ?? null
+        });
         break;
+      }
       case 'lane':
         this.props.patchValue({ nombre: (el as Lane).nombre, rolId: (el as Lane).rolProcesoId });
         break;

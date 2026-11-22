@@ -25,6 +25,12 @@ export const PROCESOS_ROUTES: Routes = [
     loadComponent: () => import('../editor/editor-proceso/editor-proceso.component').then(m => m.EditorProcesoComponent)
   },
   {
+    path: ':procesoId/pools/:poolId/permisos',
+    canActivate: [rolGuard('ADMIN')],
+    title: 'Permisos del pool',
+    loadComponent: () => import('../permisos/permisos-pool.component').then(m => m.PermisosPoolComponent)
+  },
+  {
     path: ':procesoId/pools',
     title: 'Pools y lanes',
     loadComponent: () => import('../pools/pool-list/pool-list.component').then(m => m.PoolListComponent)
@@ -43,6 +49,17 @@ export const PROCESOS_ROUTES: Routes = [
     path: ':procesoId/mensajes',
     title: 'Mensajes',
     loadComponent: () => import('../mensajes/mensaje-list/mensaje-list.component').then(m => m.MensajeListComponent)
+  },
+  {
+    path: ':procesoId/historial',
+    title: 'Historial del proceso',
+    loadComponent: () => import('../historial/historial.component').then(m => m.HistorialComponent)
+  },
+  {
+    path: ':procesoId/compartir',
+    canActivate: [rolGuard('ADMIN')],
+    title: 'Compartir proceso',
+    loadComponent: () => import('../comparticion/comparticion.component').then(m => m.ComparticionComponent)
   },
   {
     path: ':procesoId/actividades',

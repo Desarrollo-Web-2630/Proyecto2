@@ -36,6 +36,7 @@ export class ProcesoListComponent implements OnInit {
 
   protected readonly puedeEditar = computed(() => this.sesion.usuario()?.rolAcceso !== 'LECTURA');
   protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
+  protected readonly puedeCompartir = computed(() => this.sesion.esAdmin());
 
   ngOnInit(): void {
     this.load();
@@ -91,6 +92,9 @@ export class ProcesoListComponent implements OnInit {
 
   // HU-05: pasar el proceso a publicado
   publicar(proceso: Proceso): void {
+    if (!this.puedeEditar()) {
+      return;
+    }
     this.actionError.set('');
     this.service.publicar(proceso.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -102,6 +106,9 @@ export class ProcesoListComponent implements OnInit {
 
   // HU-06: inactivar y reactivar proceso
   inactivar(proceso: Proceso): void {
+    if (!this.puedeEliminar()) {
+      return;
+    }
     if (!confirm(`¿Inactivar el proceso ${proceso.nombre}?`)) {
       return;
     }
@@ -115,6 +122,9 @@ export class ProcesoListComponent implements OnInit {
   }
 
   reactivar(proceso: Proceso): void {
+    if (!this.puedeEliminar()) {
+      return;
+    }
     this.actionError.set('');
     this.service.reactivar(proceso.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -126,6 +136,9 @@ export class ProcesoListComponent implements OnInit {
 
   // HU-06: eliminar proceso (borrado lógico)
   remove(proceso: Proceso): void {
+    if (!this.puedeEliminar()) {
+      return;
+    }
     if (!confirm(`¿Eliminar el proceso ${proceso.nombre}?`)) {
       return;
     }

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { Actividad } from '../../models/actividad.model';
 import { Arco } from '../../models/arco.model';
+import { Gateway, TipoGateway } from '../../models/gateway.model';
 import { Lane } from '../../models/lane.model';
 import { Pool } from '../../models/pool.model';
 import { RolProceso } from '../../models/rol-proceso.model';
@@ -30,8 +31,17 @@ export interface ArcoVisual {
   etiqueta: string;
 }
 
+interface NodoVisual {
+  id: number;
+  x: number;
+  y: number;
+  ancho: number;
+  alto: number;
+}
+
 const ANCHO_TARJETA = 140;
 const ALTO_TARJETA = 52;
+const LADO_GATEWAY = 56;
 
 // Diagrama de pools, lanes, lienzo 2D de actividades y capa SVG de arcos
 @Component({
@@ -45,6 +55,7 @@ export class PoolDiagramaComponent {
   readonly lanes = input<Lane[]>([]);
   readonly actividades = input<Actividad[]>([]);
   readonly arcos = input<Arco[]>([]);
+  readonly gateways = input<Gateway[]>([]);
   readonly roles = input<RolProceso[]>([]);
   readonly editable = input<boolean>(false);
 
@@ -68,35 +79,55 @@ export class PoolDiagramaComponent {
     this.lanes().reduce((total, lane) => total + this.alturaLane(lane.id), 0)
   );
 
+  protected readonly alturaContenido = computed<number>(() =>
+    Math.max(130, this.alturaTotalLanes(), ...this.gateways().map(g => g.posicionY + LADO_GATEWAY + 24))
+  );
+
+  protected readonly nodosVisuales = computed<Map<number, NodoVisual>>(() => {
+    const offsets = this.mapaOffsetVerticalLanes(this.lanes());
+    const mapa = new Map<number, NodoVisual>();
+    for (const actividad of this.actividades()) {
+      const offset = offsets.get(Number(actividad.laneId));
+      if (offset === undefined) {
+        continue;
+      }
+      mapa.set(actividad.id, {
+        id: actividad.id,
+        x: actividad.posicionX,
+        y: offset + actividad.posicionY,
+        ancho: ANCHO_TARJETA,
+        alto: ALTO_TARJETA
+      });
+    }
+    for (const gateway of this.gateways()) {
+      mapa.set(gateway.id, {
+        id: gateway.id,
+        x: gateway.posicionX,
+        y: gateway.posicionY,
+        ancho: LADO_GATEWAY,
+        alto: LADO_GATEWAY
+      });
+    }
+    return mapa;
+  });
+
   protected readonly arcosVisuales = computed<ArcoVisual[]>(() => {
-    const lanes = this.lanes();
-    const actividades = this.actividades();
     const arcos = this.arcos();
-    if (lanes.length === 0 || actividades.length === 0 || arcos.length === 0) {
+    const nodos = this.nodosVisuales();
+    if (arcos.length === 0 || nodos.size === 0) {
       return [];
     }
 
-    const offsetVerticalLane = this.mapaOffsetVerticalLanes(lanes);
     const resultado: ArcoVisual[] = [];
 
     for (const arco of arcos) {
-      const origen = actividades.find(a => Number(a.id) === Number(arco.origenId));
-      const destino = actividades.find(a => Number(a.id) === Number(arco.destinoId));
+      const origen = nodos.get(Number(arco.origenId));
+      const destino = nodos.get(Number(arco.destinoId));
       if (!origen || !destino) {
         continue;
       }
-      const offsetOrigenY = offsetVerticalLane.get(Number(origen.laneId));
-      const offsetDestinoY = offsetVerticalLane.get(Number(destino.laneId));
-      if (offsetOrigenY === undefined || offsetDestinoY === undefined) {
-        continue;
-      }
 
-      const trazo = this.calcularTrazo(
-        origen.posicionX,
-        offsetOrigenY + origen.posicionY,
-        destino.posicionX,
-        offsetDestinoY + destino.posicionY
-      );
+      const trazo = this.calcularTrazo(origen, destino);
       const partes = [arco.nombre?.trim(), arco.condicion ? `[${arco.condicion.trim()}]` : ''].filter(
         Boolean
       );
@@ -148,6 +179,10 @@ export class PoolDiagramaComponent {
 
   nombreRol(rolId: number): string {
     return this.roles().find(r => r.id === rolId)?.nombre ?? 'Sin rol';
+  }
+
+  simboloGateway(tipo: TipoGateway): string {
+    return tipo === 'EXCLUSIVO' ? '×' : tipo === 'PARALELO' ? '+' : '○';
   }
 
   // Actividades con una lane que no existe
@@ -407,15 +442,17 @@ export class PoolDiagramaComponent {
   }
 
   private calcularTrazo(
-    ox: number,
-    oy: number,
-    dx: number,
-    dy: number
+    origen: NodoVisual,
+    destino: NodoVisual
   ): { path: string; labelX: number; labelY: number } {
-    const centroOx = ox + ANCHO_TARJETA / 2;
-    const centroOy = oy + ALTO_TARJETA / 2;
-    const centroDx = dx + ANCHO_TARJETA / 2;
-    const centroDy = dy + ALTO_TARJETA / 2;
+    const ox = origen.x;
+    const oy = origen.y;
+    const dx = destino.x;
+    const dy = destino.y;
+    const centroOx = ox + origen.ancho / 2;
+    const centroOy = oy + origen.alto / 2;
+    const centroDx = dx + destino.ancho / 2;
+    const centroDy = dy + destino.alto / 2;
 
     let x1: number;
     let y1: number;
@@ -426,8 +463,8 @@ export class PoolDiagramaComponent {
     let cx2: number;
     let cy2: number;
 
-    if (ox + ANCHO_TARJETA + 12 <= dx) {
-      x1 = ox + ANCHO_TARJETA;
+    if (ox + origen.ancho + 12 <= dx) {
+      x1 = ox + origen.ancho;
       y1 = centroOy;
       x2 = dx;
       y2 = centroDy;
@@ -436,10 +473,10 @@ export class PoolDiagramaComponent {
       cy1 = y1;
       cx2 = x2 - deltaX;
       cy2 = y2;
-    } else if (dx + ANCHO_TARJETA + 12 <= ox) {
+    } else if (dx + destino.ancho + 12 <= ox) {
       x1 = ox;
       y1 = centroOy;
-      x2 = dx + ANCHO_TARJETA;
+      x2 = dx + destino.ancho;
       y2 = centroDy;
       const deltaX = Math.max(40, (x1 - x2) / 2);
       cx1 = x1 - deltaX;
@@ -448,7 +485,7 @@ export class PoolDiagramaComponent {
       cy2 = y2;
     } else if (centroOy <= centroDy) {
       x1 = centroOx;
-      y1 = oy + ALTO_TARJETA;
+      y1 = oy + origen.alto;
       x2 = centroDx;
       y2 = dy;
       const deltaY = Math.max(36, (y2 - y1) / 2);
@@ -460,7 +497,7 @@ export class PoolDiagramaComponent {
       x1 = centroOx;
       y1 = oy;
       x2 = centroDx;
-      y2 = dy + ALTO_TARJETA;
+      y2 = dy + destino.alto;
       const deltaY = Math.max(36, (y1 - y2) / 2);
       cx1 = x1;
       cy1 = y1 - deltaY;

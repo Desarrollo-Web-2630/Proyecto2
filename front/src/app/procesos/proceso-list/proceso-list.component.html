@@ -58,6 +58,10 @@
             <td><span class="etiqueta">{{ p.estado }}</span></td>
             <td class="acciones-fila">
               <a class="boton" [routerLink]="[p.id, 'editor']">Abrir editor</a>
+              <a [routerLink]="[p.id, 'historial']">Historial</a>
+              @if (puedeCompartir()) {
+                <a [routerLink]="[p.id, 'compartir']">Compartir</a>
+              }
               @if (puedeEditar()) {
                 <a [routerLink]="[p.id, 'editar']">Editar</a>
                 @if (p.estado === 'BORRADOR') {

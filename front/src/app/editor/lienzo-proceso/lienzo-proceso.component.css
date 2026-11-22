@@ -182,4 +182,6 @@
 .trazo text { fill: #4a3e4d; font-size: 12px; paint-order: stroke; stroke: #fbfaf9; stroke-width: 4px; }
 .trazo.seleccionado .linea { stroke: var(--malva); stroke-width: 4; }
 .mensaje .linea { stroke: var(--azul-gris); stroke-dasharray: 7 5; }
+.trazo.mensaje .glifo { fill: #3f5a60; font-weight: 700; }
+.trazo.mensaje .medio { fill: #5a747a; font-size: 10px; font-style: italic; }
 .en-curso { stroke: var(--salvia); stroke-dasharray: 5 4; }

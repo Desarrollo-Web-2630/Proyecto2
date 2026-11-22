@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { Observable, forkJoin, switchMap } from 'rxjs';
 import { mensajeDeError } from '../../core/api-error';
 import { Actividad } from '../../models/actividad.model';
-import { Mensaje } from '../../models/mensaje.model';
+import { Mensaje, PoliticaFallo, TipoMensaje, VarianteMensaje } from '../../models/mensaje.model';
 import { Pool } from '../../models/pool.model';
 import { Proceso } from '../../models/proceso.model';
 import { ActividadService } from '../../services/actividad.service';
@@ -44,12 +44,31 @@ export class MensajeListComponent implements OnInit {
   protected readonly puedeEditar = computed(() => this.sesion.usuario()?.rolAcceso !== 'LECTURA');
   protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
 
+  protected readonly tiposMensaje: { valor: TipoMensaje; texto: string }[] = [
+    { valor: 'THROW', texto: 'THROW · enviar' },
+    { valor: 'CATCH', texto: 'CATCH · recibir' }
+  ];
+  protected readonly variantesMensaje: { valor: VarianteMensaje; texto: string }[] = [
+    { valor: 'INICIO', texto: 'Inicio' },
+    { valor: 'INTERMEDIO', texto: 'Intermedio' }
+  ];
+  protected readonly politicasFallo: { valor: PoliticaFallo; texto: string }[] = [
+    { valor: 'REINTENTAR', texto: 'Reintentar' },
+    { valor: 'FALLAR', texto: 'Fallar' },
+    { valor: 'REGISTRAR', texto: 'Registrar' }
+  ];
+
   protected readonly form = this.fb.group({
     nombre: ['', [Validators.required, Validators.maxLength(255)]],
     claveCorrelacion: ['', [Validators.required, Validators.maxLength(255)]],
     poolOrigenId: [null as number | null, Validators.required],
     poolDestinoId: [null as number | null, Validators.required],
-    elementoOrigenId: [null as number | null]
+    elementoOrigenId: [null as number | null],
+    tipoMensaje: ['THROW' as TipoMensaje],
+    variante: ['INICIO' as VarianteMensaje],
+    destinoExterno: [''],
+    payload: [''],
+    politicaFallo: [null as PoliticaFallo | null]
   });
 
   private get id(): number {
@@ -104,6 +123,9 @@ export class MensajeListComponent implements OnInit {
   }
 
   guardar(): void {
+    if (!this.puedeEditar()) {
+      return;
+    }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -118,7 +140,12 @@ export class MensajeListComponent implements OnInit {
       claveCorrelacion: (valores.claveCorrelacion ?? '').trim(),
       poolOrigenId: Number(valores.poolOrigenId),
       poolDestinoId: Number(valores.poolDestinoId),
-      elementoOrigenId: valores.elementoOrigenId === null ? null : Number(valores.elementoOrigenId)
+      elementoOrigenId: valores.elementoOrigenId === null ? null : Number(valores.elementoOrigenId),
+      tipoMensaje: valores.tipoMensaje ?? 'THROW',
+      variante: valores.variante ?? 'INICIO',
+      destinoExterno: (valores.destinoExterno ?? '').trim() || null,
+      payload: (valores.payload ?? '').trim() || null,
+      politicaFallo: valores.politicaFallo ?? null
     };
     const mensaje = this.editando();
     const accion = mensaje
@@ -128,22 +155,44 @@ export class MensajeListComponent implements OnInit {
   }
 
   editar(mensaje: Mensaje): void {
+    if (!this.puedeEditar()) {
+      return;
+    }
     this.editando.set(mensaje);
     this.form.setValue({
       nombre: mensaje.nombre,
       claveCorrelacion: mensaje.claveCorrelacion,
       poolOrigenId: mensaje.poolOrigenId,
       poolDestinoId: mensaje.poolDestinoId,
-      elementoOrigenId: mensaje.elementoOrigenId
+      elementoOrigenId: mensaje.elementoOrigenId,
+      tipoMensaje: mensaje.tipoMensaje ?? 'THROW',
+      variante: mensaje.variante ?? 'INICIO',
+      destinoExterno: mensaje.destinoExterno ?? '',
+      payload: mensaje.payload ?? '',
+      politicaFallo: mensaje.politicaFallo ?? null
     });
   }
 
   cancelar(): void {
     this.editando.set(null);
-    this.form.reset({ nombre: '', claveCorrelacion: '', poolOrigenId: null, poolDestinoId: null, elementoOrigenId: null });
+    this.form.reset({
+      nombre: '',
+      claveCorrelacion: '',
+      poolOrigenId: null,
+      poolDestinoId: null,
+      elementoOrigenId: null,
+      tipoMensaje: 'THROW',
+      variante: 'INICIO',
+      destinoExterno: '',
+      payload: '',
+      politicaFallo: null
+    });
   }
 
   eliminar(mensaje: Mensaje): void {
+    if (!this.puedeEliminar()) {
+      return;
+    }
     if (!confirm(`¿Eliminar el mensaje ${mensaje.nombre}?`)) {
       return;
     }
