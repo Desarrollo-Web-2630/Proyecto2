@@ -1,5 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { Sesion } from '../models/sesion.model';
+import { Usuario } from '../models/usuario.model';
 
 const CLAVE = 'sesion';
 
@@ -18,6 +19,16 @@ export class SesionService {
   cerrar(): void {
     sessionStorage.removeItem(CLAVE);
     this.actual.set(null);
+  }
+
+  actualizarUsuario(usuario: Usuario): void {
+    const sesion = this.actual();
+    if (!sesion) {
+      return;
+    }
+    const actualizada: Sesion = { ...sesion, usuario };
+    sessionStorage.setItem(CLAVE, JSON.stringify(actualizada));
+    this.actual.set(actualizada);
   }
 
   // Token vigente o null; si ya venció se cierra la sesión

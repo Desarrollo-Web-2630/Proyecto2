@@ -9,7 +9,7 @@
   <div class="pool">
     <div class="pool-nombre">{{ pool.nombre }}</div>
     @if (pool.tipo === 'PROPIETARIO') {
-      <div class="pool-lanes">
+      <div class="pool-lanes" [style.min-height.px]="alturaContenido()">
         @for (lane of lanes(); track lane.id) {
           <div
             class="lane"
@@ -72,10 +72,22 @@
           <p class="vacio">Sin lanes</p>
         }
 
+        @for (gateway of gateways(); track gateway.id) {
+          <div
+            class="gateway"
+            [title]="gateway.nombre"
+            [style.left.px]="gateway.posicionX"
+            [style.top.px]="gateway.posicionY"
+          >
+            <span class="rombo"><b>{{ simboloGateway(gateway.tipo) }}</b></span>
+            <small>{{ gateway.nombre }}</small>
+          </div>
+        }
+
         @if (arcosVisuales().length > 0 || trazoArcoEnCurso()) {
           <svg
             class="capa-arcos"
-            [style.height.px]="alturaTotalLanes()"
+            [style.height.px]="alturaContenido()"
             aria-hidden="true"
           >
             <defs>

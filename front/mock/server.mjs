@@ -12,6 +12,8 @@ const db = {
   ],
   pools: [], lanes: [], actividades: [], arcos: [], gateways: [], mensajes: [], comp: { compartido: false, empresasIds: [] },
   permisos: { crear: ['ADMIN', 'EDITOR'], editar: ['ADMIN', 'EDITOR'], eliminar: ['ADMIN'] },
+  permisosPool: {},
+  historial: [],
 };
 let seq = 100;
 const send = (res, s, b) => { res.writeHead(s, { 'Content-Type': 'application/json' }); res.end(b === undefined ? '' : JSON.stringify(b)); };
@@ -44,12 +46,19 @@ http.createServer((req, res) => {
     // Token falso del mock: "mock-<idUsuario>"; la empresa sale del usuario, como en el backend real
     const tokenUsuario = db.usuarios.find(x => `Bearer mock-${x.id}` === req.headers['authorization']);
     const empresaId = tokenUsuario?.empresaId ?? 1;
+    const correoSesion = tokenUsuario?.correo ?? 'sistema';
+    const registrar = (entidad, entidadId, accion, descripcion, procesoId = null) => db.historial.push({ id: ++seq, entidad, entidadId, accion, descripcion, usuarioCorreo: correoSesion, fecha: new Date().toISOString(), procesoId });
     console.log(m, p, req.headers['x-empresa-id'] ?? '-');
     let r;
     if (m === 'POST' && p === '/api/v1/empresas') { if (db.empresas.some(e => e.nit === b.nit)) return err(res, 400, 'Ya existe una empresa con ese NIT'); const e = { id: ++seq, ...b }; db.empresas.push(e); return send(res, 201, e); }
     if (m === 'GET' && p === '/api/v1/empresas') return send(res, 200, db.empresas);
     if ((r = p.match(/^\/api\/v1\/empresas\/(\d+)$/))) return send(res, 200, db.empresas.find(e => e.id == r[1]));
+    if (p === '/api/v1/empresas/catalogo' && m === 'GET') return send(res, 200, db.empresas.map(({ id, nombre }) => ({ id, nombre })));
+    if (p === '/api/v1/historial' && m === 'GET') return send(res, 200, db.historial.slice().sort((a, c) => c.id - a.id));
+    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/historial$/)) && m === 'GET') return send(res, 200, db.historial.filter(h => h.procesoId == r[1]).sort((a, c) => c.id - a.id));
     if (p === '/api/auth/login') { const u = db.usuarios.find(x => x.correo === b.correo && x.activo); if (!u || b.password !== 'Demo12345') return err(res, 401, 'Correo o contrasena incorrectos, o la cuenta no esta activa'); return send(res, 200, { token: `mock-${u.id}`, tipo: 'Bearer', expiraEn: 3600, usuario: u }); }
+    if (p === '/api/auth/yo' && m === 'GET') { if (!tokenUsuario) return err(res, 401, 'La sesión no es válida'); return send(res, 200, tokenUsuario); }
+    if (p === '/api/auth/logout' && m === 'POST') return send(res, 200, { mensaje: 'Sesión cerrada' });
     if (p === '/api/v1/usuarios' && m === 'GET') return send(res, 200, db.usuarios.filter(u => u.empresaId == empresaId));
     if (p === '/api/v1/usuarios/buscar' && m === 'GET') return send(res, 200, paginar(db.usuarios.filter(u => u.empresaId == empresaId).sort((a, c) => a.nombre.localeCompare(c.nombre)), u));
     if (p === '/api/v1/usuarios' && m === 'POST') { if (db.usuarios.some(u => u.correo === b.correo)) return err(res, 400, `Ya existe un usuario con el correo '${b.correo}'`); const u = { id: ++seq, nombre: b.nombre, correo: b.correo, rolAcceso: b.rolAcceso, activo: false, empresaId }; db.usuarios.push(u); return send(res, 201, u); }
@@ -117,6 +126,20 @@ http.createServer((req, res) => {
       }
       return send(res, 200, rolDetalle(rol));
     }
+    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/pools\/(\d+)\/permisos$/))) {
+      const clave = `${r[1]}:${r[2]}`;
+      if (!db.permisosPool[clave]) db.permisosPool[clave] = [
+        { rolAcceso: 'ADMIN', puedeCrear: true, puedeEditar: true, puedeEliminar: true },
+        { rolAcceso: 'EDITOR', puedeCrear: true, puedeEditar: true, puedeEliminar: false },
+        { rolAcceso: 'LECTURA', puedeCrear: false, puedeEditar: false, puedeEliminar: false },
+      ];
+      if (m === 'PUT') {
+        if (!['ADMIN', 'EDITOR', 'LECTURA'].includes(b.rolAcceso)) return err(res, 400, 'El rol de acceso no es válido');
+        db.permisosPool[clave] = db.permisosPool[clave].map(x => x.rolAcceso === b.rolAcceso ? { ...x, puedeCrear: !!b.puedeCrear, puedeEditar: !!b.puedeEditar, puedeEliminar: !!b.puedeEliminar } : x);
+        registrar('PERMISO_POOL', +r[2], 'ACTUALIZAR', `Permisos de ${b.rolAcceso} actualizados en el pool ${r[2]}`, +r[1]);
+      }
+      return send(res, 200, db.permisosPool[clave]);
+    }
     if (p === '/api/v1/permisos-pool') { if (m === 'PUT') db.permisos = b; return send(res, 200, db.permisos); }
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/(publicar|inactivar|reactivar)$/))) {
       const proc = db.procesos.find(x => x.id == r[1] && x.empresaId == empresaId);
@@ -124,7 +147,12 @@ http.createServer((req, res) => {
       if (r[2] === 'publicar') { if (proc.estado === 'PUBLICADO') return err(res, 400, 'El proceso ya está publicado'); proc.estado = 'PUBLICADO'; }
       if (r[2] === 'inactivar') { proc.estado = 'INACTIVO'; }
       if (r[2] === 'reactivar') { if (proc.estado !== 'INACTIVO') return err(res, 400, 'El proceso no está inactivo'); proc.estado = 'BORRADOR'; }
+      registrar('PROCESO', proc.id, r[2].toUpperCase(), `El proceso ${proc.nombre} ahora está ${proc.estado}`, proc.id);
       return send(res, 200, proc);
+    }
+    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/acceso$/)) && m === 'GET') {
+      const proc = db.procesos.find(x => x.id == r[1]);
+      return send(res, 200, { soloLectura: proc ? proc.empresaId !== empresaId : false });
     }
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)$/))) {
       const proc = db.procesos.find(x => x.id == r[1] && x.empresaId == empresaId);
@@ -134,9 +162,10 @@ http.createServer((req, res) => {
         const nombre = b.nombre.trim();
         if (db.procesos.some(x => x.id !== proc.id && x.empresaId == empresaId && x.nombre.toLowerCase() === nombre.toLowerCase())) return err(res, 400, `Ya existe un proceso llamado '${nombre}' en la empresa`);
         Object.assign(proc, { nombre, descripcion: b.descripcion.trim(), categoria: b.categoria.trim() });
+        registrar('PROCESO', proc.id, 'ACTUALIZAR', `Datos del proceso ${proc.nombre} actualizados`, proc.id);
         return send(res, 200, proc);
       }
-      if (m === 'DELETE') { db.procesos.splice(db.procesos.indexOf(proc), 1); return send(res, 204); }
+      if (m === 'DELETE') { registrar('PROCESO', proc.id, 'ELIMINAR', `El proceso ${proc.nombre} se eliminó`, proc.id); db.procesos.splice(db.procesos.indexOf(proc), 1); return send(res, 204); }
       return send(res, 200, proc);
     }
     // Actividades
@@ -240,15 +269,30 @@ http.createServer((req, res) => {
       return send(res, 200, x);
     }
     // Mensajes
+    const tiposMensaje = ['THROW', 'CATCH'], variantesMensaje = ['INICIO', 'INTERMEDIO'], politicasFallo = ['REINTENTAR', 'FALLAR', 'REGISTRAR'];
     const validarMensaje = (datos) => !datos.nombre?.trim() ? 'El nombre del mensaje es obligatorio'
       : !datos.claveCorrelacion?.trim() ? 'La clave de correlacion es obligatoria'
       : datos.poolOrigenId == null || datos.poolDestinoId == null ? 'El pool de origen y el de destino son obligatorios'
-      : datos.poolOrigenId == datos.poolDestinoId ? 'Un mensaje viaja entre dos pools distintos' : null;
+      : datos.poolOrigenId == datos.poolDestinoId ? 'Un mensaje viaja entre dos pools distintos'
+      : datos.tipoMensaje != null && !tiposMensaje.includes(datos.tipoMensaje) ? 'El tipo de mensaje no es válido'
+      : datos.variante != null && !variantesMensaje.includes(datos.variante) ? 'La variante del mensaje no es válida'
+      : datos.politicaFallo != null && !politicasFallo.includes(datos.politicaFallo) ? 'La política de fallo no es válida'
+      : datos.destinoExterno != null && typeof datos.destinoExterno !== 'string' ? 'El destino externo debe ser texto'
+      : datos.payload != null && typeof datos.payload !== 'string' ? 'El payload debe ser texto' : null;
+    const datosMensaje = (origen, procesoId, esNuevo = false) => ({
+      nombre: origen.nombre.trim(), claveCorrelacion: origen.claveCorrelacion.trim(),
+      poolOrigenId: origen.poolOrigenId, poolDestinoId: origen.poolDestinoId, elementoOrigenId: origen.elementoOrigenId ?? null,
+      tipoMensaje: origen.tipoMensaje ?? 'THROW', variante: origen.variante ?? 'INICIO',
+      destinoExterno: origen.destinoExterno ?? null, payload: origen.payload ?? null, politicaFallo: origen.politicaFallo ?? null,
+      ...(esNuevo ? { id: ++seq, procesoId } : {}),
+    });
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/mensajes$/))) {
       if (m === 'POST') {
         const falla = validarMensaje(b); if (falla) return err(res, 400, falla);
-        const x = { id: ++seq, nombre: b.nombre.trim(), claveCorrelacion: b.claveCorrelacion.trim(), procesoId: +r[1], poolOrigenId: b.poolOrigenId, poolDestinoId: b.poolDestinoId, elementoOrigenId: b.elementoOrigenId ?? null };
-        db.mensajes.push(x); return send(res, 201, x);
+        const x = datosMensaje(b, +r[1], true);
+        db.mensajes.push(x);
+        registrar('MENSAJE', x.id, 'CREAR', `Mensaje ${x.nombre} (${x.tipoMensaje}) creado`, x.procesoId);
+        return send(res, 201, x);
       }
       return send(res, 200, db.mensajes);
     }
@@ -257,13 +301,23 @@ http.createServer((req, res) => {
       if (!x) return err(res, 400, 'El mensaje no existe o no pertenece a su empresa');
       if (m === 'PUT') {
         const falla = validarMensaje(b); if (falla) return err(res, 400, falla);
-        Object.assign(x, { nombre: b.nombre.trim(), claveCorrelacion: b.claveCorrelacion.trim(), poolOrigenId: b.poolOrigenId, poolDestinoId: b.poolDestinoId, elementoOrigenId: b.elementoOrigenId ?? null });
+        Object.assign(x, datosMensaje(b, x.procesoId));
+        registrar('MENSAJE', x.id, 'ACTUALIZAR', `Mensaje ${x.nombre} actualizado`, x.procesoId);
         return send(res, 200, x);
       }
-      if (m === 'DELETE') { db.mensajes.splice(db.mensajes.indexOf(x), 1); return send(res, 204); }
+      if (m === 'DELETE') { registrar('MENSAJE', x.id, 'ELIMINAR', `Mensaje ${x.nombre} eliminado`, x.procesoId); db.mensajes.splice(db.mensajes.indexOf(x), 1); return send(res, 204); }
       return send(res, 200, x);
     }
-    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/comparticion$/))) { if (m === 'PUT') db.comp = b; return send(res, 200, db.comp); }
+    if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/comparticion$/))) {
+      const procesoId = +r[1];
+      const respuesta = () => ({ procesoId, compartido: db.comp.compartido, empresasInvitadas: db.empresas.filter(e => db.comp.empresasIds.includes(e.id)).map(({ id, nombre }) => ({ id, nombre })) });
+      if (m === 'PUT') {
+        const ids = (b.empresasInvitadasIds ?? []).map(Number);
+        db.comp = { compartido: ids.length > 0, empresasIds: ids };
+        registrar('COMPARTICION', procesoId, 'ACTUALIZAR', `Compartición actualizada: ${ids.length} empresa(s) invitada(s)`, procesoId);
+      }
+      return send(res, 200, respuesta());
+    }
     if ((r = p.match(/^\/api\/v1\/procesos\/(\d+)\/pools$/))) { if (m === 'POST') { const x = { id: ++seq, procesoId: 1, ...b }; db.pools.push(x); return send(res, 201, x); } return send(res, 200, db.pools); }
     if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/pools\/(\d+)$/))) { const i = db.pools.findIndex(x => x.id == r[1]); if (m === 'DELETE') { db.pools.splice(i, 1); return send(res, 204); } Object.assign(db.pools[i], b); return send(res, 200, db.pools[i]); }
     if ((r = p.match(/^\/api\/v1\/procesos\/\d+\/pools\/(\d+)\/lanes\/orden$/))) { b.lanesIds.forEach((id, k) => db.lanes.find(l => l.id == id).orden = k); return send(res, 200, db.lanes); }

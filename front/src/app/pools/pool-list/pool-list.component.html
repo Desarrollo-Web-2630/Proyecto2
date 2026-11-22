@@ -25,6 +25,7 @@
       [lanes]="lanes()"
       [actividades]="actividades()"
       [arcos]="arcos()"
+      [gateways]="gateways()"
       [roles]="roles()"
       [editable]="!soloLectura()"
       (moverActividad)="moverActividadDiagrama($event)"
@@ -58,6 +59,7 @@
                   <button type="button" class="enlace" (click)="editarPool(pool)">Editar</button>
                 }
                 @if (puedeEliminar()) {
+                  <a [routerLink]="['/procesos', procesoId(), 'pools', pool.id, 'permisos']">Permisos</a>
                   <button type="button" class="enlace peligro" (click)="eliminarPool(pool)">Eliminar</button>
                 }
               </td>

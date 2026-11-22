@@ -34,6 +34,10 @@ export class ProcesoService {
     return this.http.get<Proceso>(`${this.url}/${id}`);
   }
 
+  acceso(id: number): Observable<{ soloLectura: boolean }> {
+    return this.http.get<{ soloLectura: boolean }>(`${this.url}/${id}/acceso`);
+  }
+
   create(proceso: ProcesoRequest): Observable<Proceso> {
     return this.http.post<Proceso>(this.url, proceso);
   }

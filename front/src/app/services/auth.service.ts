@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import { LoginRespuesta } from '../models/login-respuesta.model';
 import { Sesion } from '../models/sesion.model';
 import { LoginRequest, Usuario } from '../models/usuario.model';
@@ -24,8 +24,14 @@ export class AuthService {
     return this.http.get<Usuario>('/auth/yo');
   }
 
-  logout(): void {
-    this.sesion.cerrar();
+  logout(): Observable<void> {
+    return this.http.post<void>('/auth/logout', {}).pipe(
+      tap({
+        next: () => this.sesion.cerrar(),
+        error: () => this.sesion.cerrar()
+      }),
+      catchError(() => of(void 0))
+    );
   }
 
   activarCuenta(datos: ActivarCuentaRequest): Observable<VerificacionResponse> {

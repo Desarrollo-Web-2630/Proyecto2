@@ -2,16 +2,18 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Observable, forkJoin, map, of, switchMap, tap } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { mensajeDeError } from '../../core/api-error';
 import { Actividad } from '../../models/actividad.model';
 import { Arco } from '../../models/arco.model';
+import { Gateway } from '../../models/gateway.model';
 import { Lane } from '../../models/lane.model';
 import { Pool, TipoPool } from '../../models/pool.model';
 import { Proceso } from '../../models/proceso.model';
 import { RolProceso } from '../../models/rol-proceso.model';
 import { ActividadService } from '../../services/actividad.service';
 import { ArcoService } from '../../services/arco.service';
+import { GatewayService } from '../../services/gateway.service';
 import { LaneService } from '../../services/lane.service';
 import { PoolService } from '../../services/pool.service';
 import { ProcesoService } from '../../services/proceso.service';
@@ -38,6 +40,7 @@ export class PoolListComponent implements OnInit {
   private readonly laneService = inject(LaneService);
   private readonly actividadService = inject(ActividadService);
   private readonly arcoService = inject(ArcoService);
+  private readonly gatewayService = inject(GatewayService);
   private readonly rolService = inject(RolProcesoService);
   private readonly sesion = inject(SesionService);
   private readonly destroyRef = inject(DestroyRef);
@@ -57,6 +60,7 @@ export class PoolListComponent implements OnInit {
   protected readonly lanes = signal<Lane[]>([]);
   protected readonly actividades = signal<Actividad[]>([]);
   protected readonly arcos = signal<Arco[]>([]);
+  protected readonly gateways = signal<Gateway[]>([]);
   protected readonly roles = signal<RolProceso[]>([]);
   protected readonly message = signal('');
   protected readonly actionError = signal('');
@@ -66,9 +70,9 @@ export class PoolListComponent implements OnInit {
   protected readonly propietario = computed(() => this.pools().find(p => p.tipo === 'PROPIETARIO') ?? null);
   protected readonly externos = computed(() => this.pools().filter(p => p.tipo !== 'PROPIETARIO'));
 
-  // HU-22: solo lectura segun el rol de acceso del usuario
-  protected readonly soloLectura = computed(() => this.sesion.usuario()?.rolAcceso === 'LECTURA');
-  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin());
+  protected readonly compartidoSoloLectura = signal(false);
+  protected readonly soloLectura = computed(() => this.sesion.usuario()?.rolAcceso === 'LECTURA' || this.compartidoSoloLectura());
+  protected readonly puedeEliminar = computed(() => this.sesion.esAdmin() && !this.compartidoSoloLectura());
 
   protected readonly poolForm = this.fb.nonNullable.group({
     nombre: ['', [Validators.required, Validators.maxLength(120)]],
@@ -85,11 +89,16 @@ export class PoolListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    forkJoin({ proceso: this.procesoService.get(this.id), roles: this.rolService.list() })
+    forkJoin({
+      proceso: this.procesoService.get(this.id),
+      roles: this.rolService.list(),
+      acceso: this.procesoService.acceso(this.id).pipe(catchError(() => of({ soloLectura: false })))
+    })
       .pipe(
-        tap(({ proceso, roles }) => {
+        tap(({ proceso, roles, acceso }) => {
           this.proceso.set(proceso);
           this.roles.set(roles);
+          this.compartidoSoloLectura.set(acceso.soloLectura);
         }),
         switchMap(() => this.load()),
         takeUntilDestroyed(this.destroyRef)
@@ -108,17 +117,19 @@ export class PoolListComponent implements OnInit {
     return forkJoin({
       pools: this.poolService.list(this.id),
       actividades: this.actividadService.list(this.id),
-      arcos: this.arcoService.list(this.id)
+      arcos: this.arcoService.list(this.id),
+      gateways: this.gatewayService.list(this.id)
     }).pipe(
-      switchMap(({ pools, actividades, arcos }) => {
+      switchMap(({ pools, actividades, arcos, gateways }) => {
         const propietario = pools.find(p => p.tipo === 'PROPIETARIO');
         const lanes$ = propietario ? this.laneService.list(this.id, propietario.id) : of([] as Lane[]);
-        return lanes$.pipe(map(lanes => ({ pools, actividades, arcos, propietario, lanes })));
+        return lanes$.pipe(map(lanes => ({ pools, actividades, arcos, gateways, propietario, lanes })));
       }),
-      map(({ pools, actividades, arcos, propietario, lanes }) => {
+      map(({ pools, actividades, arcos, gateways, propietario, lanes }) => {
         this.pools.set(pools);
         this.actividades.set(actividades);
         this.arcos.set(arcos);
+        this.gateways.set(gateways);
         this.lanes.set(lanes.sort((a, b) => a.orden - b.orden));
         if (!propietario) {
           this.poolForm.controls.tipo.setValue('PROPIETARIO');
@@ -155,6 +166,9 @@ export class PoolListComponent implements OnInit {
   // HU-21
 
   guardarPool(): void {
+    if (this.soloLectura()) {
+      return;
+    }
     if (this.poolForm.invalid) {
       this.poolForm.markAllAsTouched();
       return;
@@ -172,6 +186,9 @@ export class PoolListComponent implements OnInit {
   }
 
   editarPool(pool: Pool): void {
+    if (this.soloLectura()) {
+      return;
+    }
     this.editandoPool.set(pool);
     this.poolForm.setValue({ nombre: pool.nombre, tipo: pool.tipo });
   }
@@ -182,6 +199,9 @@ export class PoolListComponent implements OnInit {
   }
 
   eliminarPool(pool: Pool): void {
+    if (this.soloLectura() || !this.puedeEliminar()) {
+      return;
+    }
     if (pool.tipo === 'PROPIETARIO' && this.lanes().length > 0) {
       this.actionError.set('Elimina primero las lanes del pool');
       return;
@@ -203,6 +223,9 @@ export class PoolListComponent implements OnInit {
   }
 
   guardarLane(): void {
+    if (this.soloLectura()) {
+      return;
+    }
     const pool = this.propietario();
     if (!pool) {
       return;
@@ -220,6 +243,9 @@ export class PoolListComponent implements OnInit {
   }
 
   editarLane(lane: Lane): void {
+    if (this.soloLectura()) {
+      return;
+    }
     this.editandoLane.set(lane);
     this.laneForm.setValue({ nombre: lane.nombre, rolProcesoId: lane.rolProcesoId });
   }
@@ -230,6 +256,9 @@ export class PoolListComponent implements OnInit {
   }
 
   mover(indice: number, cambio: number): void {
+    if (this.soloLectura()) {
+      return;
+    }
     const pool = this.propietario();
     const ids = this.lanes().map(l => l.id);
     const destino = indice + cambio;
@@ -333,6 +362,9 @@ export class PoolListComponent implements OnInit {
   }
 
   eliminarLane(lane: Lane): void {
+    if (this.soloLectura() || !this.puedeEliminar()) {
+      return;
+    }
     const pool = this.propietario();
     if (!pool) {
       return;

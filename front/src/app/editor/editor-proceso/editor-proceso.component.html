@@ -24,6 +24,10 @@
           <a [routerLink]="['/procesos', procesoId(), 'gateways']">Gateways</a>
           <a [routerLink]="['/procesos', procesoId(), 'arcos']">Arcos</a>
           <a [routerLink]="['/procesos', procesoId(), 'mensajes']">Mensajes</a>
+          <a [routerLink]="['/procesos', procesoId(), 'historial']">Historial</a>
+          @if (puedeCompartir()) {
+            <a [routerLink]="['/procesos', procesoId(), 'compartir']">Compartir</a>
+          }
         </nav>
       </header>
 
@@ -100,7 +104,7 @@
               @if (s.tipo === 'actividad') {
                 <label>
                   Tipo
-                  <select formControlName="tipo">
+                  <select formControlName="tipo" [disabled]="!editable()">
                     @for (t of tiposActividad; track t.valor) {
                       <option [value]="t.valor">{{ t.texto }}</option>
                     }
@@ -110,7 +114,7 @@
               @if (s.tipo === 'gateway') {
                 <label>
                   Tipo
-                  <select formControlName="tipo">
+                  <select formControlName="tipo" [disabled]="!editable()">
                     @for (t of tiposGateway; track t.valor) {
                       <option [value]="t.valor">{{ t.texto }}</option>
                     }
@@ -128,11 +132,44 @@
                   Correlación
                   <input formControlName="clave" placeholder="Por ejemplo: n.º de solicitud" [readOnly]="!editable()">
                 </label>
+                <label>
+                  Tipo de mensaje
+                  <select formControlName="tipoMensaje" [disabled]="!editable()">
+                    @for (tipo of tiposMensaje; track tipo.valor) {
+                      <option [value]="tipo.valor">{{ tipo.texto }}</option>
+                    }
+                  </select>
+                </label>
+                <label>
+                  Variante
+                  <select formControlName="variante" [disabled]="!editable()">
+                    @for (variante of variantesMensaje; track variante.valor) {
+                      <option [value]="variante.valor">{{ variante.texto }}</option>
+                    }
+                  </select>
+                </label>
+                <label>
+                  Destino externo
+                  <input formControlName="destinoExterno" placeholder="Correo, endpoint o sistema externo" [readOnly]="!editable()">
+                </label>
+                <label>
+                  Payload
+                  <input formControlName="payload" placeholder="Datos del mensaje" [readOnly]="!editable()">
+                </label>
+                <label>
+                  Política de fallo
+                  <select formControlName="politicaFallo" [disabled]="!editable()">
+                    <option [ngValue]="null">Sin política</option>
+                    @for (politica of politicasFallo; track politica.valor) {
+                      <option [value]="politica.valor">{{ politica.texto }}</option>
+                    }
+                  </select>
+                </label>
               }
               @if (s.tipo === 'lane') {
                 <label>
                   Rol responsable
-                  <select formControlName="rolId">
+                  <select formControlName="rolId" [disabled]="!editable()">
                     @for (r of roles(); track r.id) {
                       <option [ngValue]="r.id">{{ r.nombre }}</option>
                     }
@@ -243,6 +280,39 @@
             @if (form.controls.clave.touched && form.controls.clave.invalid) {
               <small class="error">Indica qué dato identifica el caso.</small>
             }
+            <label>
+              Tipo de mensaje
+              <select formControlName="tipoMensaje">
+                @for (tipo of tiposMensaje; track tipo.valor) {
+                  <option [value]="tipo.valor">{{ tipo.texto }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Variante
+              <select formControlName="variante">
+                @for (variante of variantesMensaje; track variante.valor) {
+                  <option [value]="variante.valor">{{ variante.texto }}</option>
+                }
+              </select>
+            </label>
+            <label>
+              Destino externo (opcional)
+              <input formControlName="destinoExterno" placeholder="Correo, endpoint o sistema externo">
+            </label>
+            <label>
+              Payload (opcional)
+              <input formControlName="payload" placeholder="Datos del mensaje">
+            </label>
+            <label>
+              Política de fallo (opcional)
+              <select formControlName="politicaFallo">
+                <option [ngValue]="null">Sin política</option>
+                @for (politica of politicasFallo; track politica.valor) {
+                  <option [value]="politica.valor">{{ politica.texto }}</option>
+                }
+              </select>
+            </label>
           }
 
           @if (origenArcoEsGateway()) {

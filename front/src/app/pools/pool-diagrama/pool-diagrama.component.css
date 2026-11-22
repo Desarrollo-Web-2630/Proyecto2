@@ -121,6 +121,34 @@
   font-size: 0.7rem;
   color: #6b5f6e;
 }
+.gateway {
+  position: absolute;
+  z-index: 2;
+  width: 56px;
+  height: 56px;
+}
+.gateway .rombo {
+  position: absolute;
+  inset: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 2px solid var(--arena);
+  transform: rotate(45deg);
+}
+.gateway .rombo b { transform: rotate(-45deg); font-size: 1.2rem; }
+.gateway small {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 120px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #4a3e4d;
+}
 .conector-arco {
   position: absolute;
   right: -7px;

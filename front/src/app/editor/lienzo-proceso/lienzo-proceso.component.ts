@@ -76,6 +76,8 @@ interface TrazoVisual {
   etiqueta: string;
   etiquetaX: number;
   etiquetaY: number;
+  glifo: string;
+  medio: string;
 }
 
 type Arrastre =
@@ -214,7 +216,9 @@ export class LienzoProcesoComponent {
         path: trazo.path,
         etiqueta: partes.join(' '),
         etiquetaX: trazo.x,
-        etiquetaY: trazo.y
+        etiquetaY: trazo.y,
+        glifo: '',
+        medio: ''
       });
     }
     return resultado;
@@ -244,6 +248,8 @@ export class LienzoProcesoComponent {
       const yInicioSaliente = nodo ? nodo.y + nodo.alto : yPropietario;
       const y1 = saliente ? yInicioSaliente : yExterno;
       const y2 = saliente ? yExterno : yPropietario;
+      const glifo = m.tipoMensaje === 'CATCH' ? '◀ CATCH' : '▶ THROW';
+      const medio = m.destinoExterno?.trim() ?? '';
       const partes = [m.nombre, `[${m.claveCorrelacion}]`];
       resultado.push({
         clave: `mensaje-${m.id}`,
@@ -251,7 +257,9 @@ export class LienzoProcesoComponent {
         path: `M ${x} ${y1} L ${x} ${y2}`,
         etiqueta: partes.join(' '),
         etiquetaX: x + 6,
-        etiquetaY: Math.round((yPropietario + yExterno) / 2)
+        etiquetaY: Math.round((yPropietario + yExterno) / 2),
+        glifo,
+        medio
       });
     }
     return resultado;
