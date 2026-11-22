@@ -7,8 +7,8 @@
   </nav>
   @if (sesion.usuario(); as u) {
     <div class="usuario">
-      <span>{{ u.nombre }} · {{ u.rolAcceso }}</span>
-      <button type="button" class="secundario" (click)="logout()">Cerrar sesión</button>
+      <span data-testid="usuario-actual">{{ u.nombre }} · {{ u.rolAcceso }}</span>
+      <button type="button" class="secundario" data-testid="cerrar-sesion" (click)="logout()">Cerrar sesión</button>
     </div>
   }
 </header>

@@ -1,12 +1,12 @@
 <div class="encabezado">
   <h2>Procesos de mi empresa</h2>
   @if (puedeEditar()) {
-    <a class="boton" routerLink="nuevo">+ Nuevo proceso</a>
+    <a class="boton" routerLink="nuevo" data-testid="nuevo-proceso">+ Nuevo proceso</a>
   }
 </div>
 
 <form class="acciones" (ngSubmit)="buscar()">
-  <input name="nombre" [(ngModel)]="nombre" placeholder="Buscar por nombre" aria-label="Buscar por nombre">
+  <input name="nombre" data-testid="buscar-nombre" [(ngModel)]="nombre" placeholder="Buscar por nombre" aria-label="Buscar por nombre">
   <input name="categoria" [(ngModel)]="categoria" placeholder="Categoría" aria-label="Filtrar por categoría">
   <select name="estado" [(ngModel)]="estado" aria-label="Filtrar por estado">
     <option value="">Todos los estados</option>
@@ -19,7 +19,7 @@
     Incluir inactivos
   </label>
   <div class="acciones">
-    <button type="submit">Buscar</button>
+    <button type="submit" data-testid="buscar">Buscar</button>
     @if (nombre || categoria || estado || incluirInactivos) {
       <button type="button" class="secundario" (click)="limpiar()">Limpiar</button>
     }
@@ -27,7 +27,7 @@
 </form>
 
 @if (actionError()) {
-  <p class="error" role="alert">{{ actionError() }}</p>
+  <p class="error" role="alert" data-testid="procesos-error">{{ actionError() }}</p>
 }
 
 @switch (status()) {
@@ -51,13 +51,13 @@
       </thead>
       <tbody>
         @for (p of procesos(); track p.id) {
-          <tr>
-            <td>{{ p.nombre }}</td>
+          <tr data-testid="fila-proceso">
+            <td data-testid="nombre-proceso">{{ p.nombre }}</td>
             <td>{{ p.descripcion }}</td>
             <td>{{ p.categoria }}</td>
             <td><span class="etiqueta">{{ p.estado }}</span></td>
             <td class="acciones-fila">
-              <a class="boton" [routerLink]="[p.id, 'editor']">Abrir editor</a>
+              <a class="boton" data-testid="abrir-editor" [routerLink]="[p.id, 'editor']">Abrir editor</a>
               <a [routerLink]="[p.id, 'historial']">Historial</a>
               @if (puedeCompartir()) {
                 <a [routerLink]="[p.id, 'compartir']">Compartir</a>
