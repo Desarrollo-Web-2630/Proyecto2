@@ -1,6 +1,7 @@
 <div class="marco">
   <div
     class="tablero"
+    data-testid="tablero"
     [class.activo]="tableroActivo()"
     [style.width.px]="anchoTablero()"
     [style.height.px]="alturaTablero()"
@@ -21,6 +22,7 @@
     @if (propietario(); as pool) {
       <div
         class="pool"
+        data-testid="pool-propietario"
         [class.seleccionado]="esSeleccion('pool', pool.id)"
         [style.height.px]="alturaPropietario()"
         (click)="elegir($event, 'pool', pool.id)"
@@ -33,6 +35,8 @@
       @for (lane of lanes(); track lane.id) {
         <div
           class="lane"
+          data-testid="lane"
+          [attr.data-id]="lane.id"
           [class.destino]="laneActivaId() === lane.id"
           [style.top.px]="topLane(lane.id)"
           [style.height.px]="alturaLane(lane.id)"
@@ -59,6 +63,8 @@
       @for (a of actividades(); track a.id) {
         <div
           class="actividad"
+          data-testid="actividad"
+          [attr.data-id]="a.id"
           [class.seleccionado]="esSeleccion('actividad', a.id)"
           [class.destino]="nodoDestinoId() === a.id"
           [style.left.px]="desplazamiento + a.posicionX"
@@ -86,6 +92,8 @@
       @for (g of gateways(); track g.id) {
         <div
           class="gateway"
+          data-testid="gateway"
+          [attr.data-id]="g.id"
           [class.seleccionado]="esSeleccion('gateway', g.id)"
           [class.destino]="nodoDestinoId() === g.id"
           [style.left.px]="desplazamiento + g.posicionX"
@@ -139,7 +147,7 @@
       </defs>
       <g [attr.transform]="'translate(' + desplazamiento + ',0)'">
         @for (t of arcosVisuales(); track t.clave) {
-          <g class="trazo" [class.seleccionado]="esSeleccion('arco', t.id)" tabindex="0" (click)="elegir($event, 'arco', t.id)" (keydown.enter)="elegir($event, 'arco', t.id)">
+          <g class="trazo" data-testid="arco" [class.seleccionado]="esSeleccion('arco', t.id)" tabindex="0" (click)="elegir($event, 'arco', t.id)" (keydown.enter)="elegir($event, 'arco', t.id)">
             <path class="zona" [attr.d]="t.path" />
             <path class="linea" [attr.d]="t.path" marker-end="url(#flecha)" />
             @if (t.etiqueta) {

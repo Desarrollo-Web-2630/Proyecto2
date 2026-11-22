@@ -3,7 +3,7 @@
     <p class="cargando">Cargando el editor…</p>
   }
   @case ('error') {
-    <p class="error" role="alert">{{ mensajeCarga() }}</p>
+    <p class="error" role="alert" data-testid="editor-error-carga">{{ mensajeCarga() }}</p>
     <a routerLink="/procesos">Volver a procesos</a>
   }
   @case ('success') {
@@ -11,11 +11,11 @@
       <header class="barra">
         <div>
           <a class="volver" routerLink="/procesos">← Procesos</a>
-          <h2>{{ proceso()?.nombre }}</h2>
+          <h2 data-testid="editor-titulo">{{ proceso()?.nombre }}</h2>
         </div>
         <span class="etiqueta">{{ proceso()?.estado }}</span>
         @if (!editable()) {
-          <span class="nota">Modo solo lectura</span>
+          <span class="nota" data-testid="solo-lectura">Modo solo lectura</span>
         }
         <nav class="listas">
           <span class="nota">Ver como lista:</span>
@@ -32,14 +32,14 @@
       </header>
 
       @if (error()) {
-        <p class="mensaje error" role="alert">{{ error() }}</p>
+        <p class="mensaje error" role="alert" data-testid="editor-error">{{ error() }}</p>
       }
       @if (aviso()) {
-        <p class="mensaje aviso" role="status">{{ aviso() }}</p>
+        <p class="mensaje aviso" role="status" data-testid="editor-aviso">{{ aviso() }}</p>
       }
 
       <div class="cuerpo">
-        <aside class="paleta" aria-label="Paleta de elementos">
+        <aside class="paleta" aria-label="Paleta de elementos" data-testid="paleta">
           @if (editable()) {
             <p class="ayuda">Arrastra un elemento y suéltalo sobre el lienzo.</p>
             @for (g of grupos; track g.titulo) {
@@ -48,6 +48,7 @@
                 <div
                   class="item"
                   draggable="true"
+                  [attr.data-testid]="'paleta-' + item.clave"
                   [title]="item.ayuda"
                   (dragstart)="empezarArrastre($event, item.clave)"
                   (dragend)="terminarArrastre()"
@@ -207,6 +208,7 @@
         <form
           class="dialogo"
           role="dialog"
+          data-testid="dialogo"
           aria-modal="true"
           [attr.aria-label]="titulo(d)"
           [formGroup]="form"
@@ -229,7 +231,7 @@
               @case ('mensaje') { Nombre del mensaje }
               @default { Nombre }
             }
-            <input formControlName="nombre">
+            <input formControlName="nombre" data-testid="dialogo-nombre">
           </label>
           @if (form.controls.nombre.touched && form.controls.nombre.invalid) {
             <small class="error">El nombre es obligatorio.</small>
@@ -323,7 +325,7 @@
           }
 
           <div class="botones">
-            <button type="submit" [disabled]="guardando() || (d.tipo === 'lane' && roles().length === 0)">Guardar</button>
+            <button type="submit" data-testid="dialogo-guardar" [disabled]="guardando() || (d.tipo === 'lane' && roles().length === 0)">Guardar</button>
             <button type="button" class="secundario" (click)="cerrarDialogo()">Cancelar</button>
           </div>
         </form>
